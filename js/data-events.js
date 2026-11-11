@@ -1,13 +1,14 @@
 /* ===== 학기별 돌발 사건 =====
    sem: 몇 번째 학기에 나오는지 (1~6)
-   tracks: 특정 고교 유형에서만 나오는 사건 (없으면 모든 학교 공통)
+   tracks: 특정 학교 종류에서만 나오는 사건 (없으면 모든 학교 공통)
    eff의 main 은 그 학교의 주특기 능력치로 바뀌어 적용됩니다. */
 var CS = window.CS || {};
 window.CS = CS;
 
-var SPORT = ['sportsTalent', 'peHigh'];
-var ARTS = ['artHigh', 'danceHigh', 'aniHigh'];
-var ACADEMIC = ['aiHigh', 'langHigh', 'sciHigh'];
+/* tracks 는 학교 종류 묶음입니다 (data-schools.js 의 KINDS 에서 g 값) */
+var SPORT = ['sport'];
+var ARTS = ['arts'];
+var ACADEMIC = ['academic'];
 
 CS.EVENTS = [
   { id: 'e1a', sem: 1, title: '새 학교, 새 교실',
@@ -38,12 +39,19 @@ CS.EVENTS = [
       { label: '혼자라도 궁금한 과목을 고른다', eff: { exp: 2, create: 1 }, result: '아는 친구는 없지만 수업이 기다려져요. 새 친구도 생겼어요.' },
       { label: '성적이 잘 나올 과목을 고른다', eff: { study: 2, stress: 1 }, result: '성적은 올랐어요. 다만 흥미는 잘 모르겠어요.' }
     ] },
-  { id: 'e3b', sem: 3, tracks: ['vocHigh'], title: '자격증과 현장',
+  { id: 'e3b', sem: 3, tracks: ['voc'], title: '자격증과 현장',
     text: '2학년이 되니 자격증 시험, 기능 대회, 기업 탐방 안내가 한꺼번에 쏟아져요.',
     choices: [
       { label: '자격증 시험에 도전한다', eff: { study: 2, stress: 1 }, result: '필기와 실기를 모두 통과했어요. 이력서에 쓸 한 줄이 생겼어요.' },
       { label: '기업 탐방을 신청한다', eff: { exp: 2 }, result: '실제로 일하는 선배들을 보니 막연했던 취업이 구체적으로 보여요.' },
       { label: '기능 대회를 준비한다', eff: { create: 2, stress: 1 }, result: '밤늦게까지 실습실 불을 켰어요. 손이 기억하는 기술이 늘었어요.' }
+    ] },
+  { id: 'e3c', sem: 3, tracks: ['alt'], title: '마을 프로젝트',
+    text: '올해 팀 프로젝트 주제를 정해야 해요. 마을에는 해결하면 좋을 일이 많아요.',
+    choices: [
+      { label: '혼자 사는 어르신 반찬 배달하기', eff: { social: 2 }, result: '어르신이 손을 꼭 잡아 주셨어요. 누군가에게 필요한 사람이 된 기분이에요.' },
+      { label: '버스 정류장 안내판 새로 만들기', eff: { create: 2 }, result: '내가 만든 안내판을 마을 사람들이 매일 봐요.' },
+      { label: '마을 행사 영상 기록하기', eff: { exp: 1, create: 1 }, result: '영상을 본 군청에서 홍보에 써도 되냐고 연락이 왔어요.' }
     ] },
   { id: 'e4a', sem: 4, title: '친구와의 다툼',
     text: '사소한 오해로 가장 친한 친구와 말을 안 한 지 일주일째예요.',

@@ -54,16 +54,20 @@
   function allocLeft() {
     return CS.START_POINTS - (g.alloc.study + g.alloc.body + g.alloc.social + g.alloc.create);
   }
-  function schoolColor(s) { return s.main; }
+  /* 입학한 뒤에만 학교 정보가 보이도록 (고르는 중에는 '입학 전') */
+  function enrolled() { return g.school && g.step !== 'school' && g.step !== 'quiz'; }
+  function dormTag(sc) {
+    return '🏠 ' + CS.DORM_TEXT[sc.dorm] + (sc.dormNote ? ' (' + sc.dormNote + ')' : '');
+  }
 
-  /* ---------- 왼쪽: 캐릭터 카드 ---------- */
+  /* ---------- 왼쪽: 고등학생이 된 나 ---------- */
   function renderSide() {
-    if (g.step === 'intro') { side.innerHTML = '<p class="muted">게임을 시작하면 여기에 내 캐릭터가 나타나요.</p>'; return; }
-    var school = CS.schoolOf(g);
+    if (g.step === 'intro') { side.innerHTML = '<p class="muted">게임을 시작하면 여기에 고등학생이 된 내 모습이 나타나요.</p>'; return; }
+    var tr = enrolled() ? CS.trackOf(g) : null;
     var creating = (g.step === 'c1' || g.step === 'c2' || g.step === 'c3');
-    var h = '<div class="me bg-' + (school ? schoolColor(school) : 'white') + '">' + face('l') +
+    var h = '<div class="me bg-' + (tr ? tr.main : 'white') + '">' + face('l') +
       '<div><div class="nm">' + (esc(g.name) || '이름 없음') + '</div><div class="muted">' +
-      (school ? CS.SCHOOL_EMO[school.id] + ' ' + school.name : '입학 전') + (g.specialty ? ' · ' + esc(g.specialty) : '') + '</div></div></div>';
+      (tr ? tr.kind.emo + ' ' + esc(tr.name) : '입학 전') + (g.specialty ? ' · ' + esc(g.specialty) : '') + '</div></div></div>';
     if (g.values.length) {
       h += '<h3>중요하게 여기는 것</h3><div class="vals">';
       for (var i = 0; i < g.values.length; i++) {
@@ -97,17 +101,17 @@
     return '<div class="title-screen"><div class="steps"><span>🎒</span><span>🏫</span><span>🎓</span><span>✨</span></div>' +
       '<h1>나의 다음 페이지</h1>' +
       '<p>고등학생이 된 나를 키워서, 15년 뒤의 나를 만나요.</p>' +
-      '<p class="muted">30분쯤 걸려요. 정답은 없고, 엔딩은 84가지예요.</p>' +
+      '<p class="muted">30분쯤 걸려요. 고등학교 ' + CS.SCHOOLS.length + '곳, 대학 학과 ' + CS.majorCount() + '개, 직업 엔딩 ' + CS.jobCount() + '가지. 정답은 없어요.</p>' +
       '<div class="mt">' + primary('start', '게임 시작') + '</div></div>';
   };
 
   VIEWS.c1 = function () {
-    var h = scene({ place: '캐릭터 만들기 1 / 3', emo: '🪪', color: 'exp', text: '고등학생이 된 나. 이름과 얼굴부터 정해요.' });
+    var h = scene({ place: '고등학생이 된 나 만들기 1 / 3', emo: '🪪', color: 'exp', text: '1년 뒤, 고등학생이 된 나를 떠올려 봐요. 이름과 얼굴부터 정해요.' });
     h += '<label class="field"><span class="lab">이름</span><input type="text" id="inName" maxlength="10" placeholder="내 이름 또는 별명" value="' + esc(g.name) + '"></label>';
     h += '<div class="field"><span class="lab">얼굴</span><div class="row">' +
       '<label class="photo-btn">📷 ' + (g.photo ? '사진 바꾸기' : '사진 올리기') + '<input type="file" id="inPhoto" accept="image/*"></label>';
     if (g.photo) { h += '<button class="btn" data-act="photoOff">사진 빼기</button>'; }
-    h += '</div><p class="muted mt-s">얼굴 사진이 아니어도 돼요. 좋아하는 캐릭터나 풍경도 좋아요. 사진은 이 기기에만 저장돼요.</p><div class="row mt-s">';
+    h += '</div><p class="muted mt-s">얼굴 사진이 아니어도 돼요. 좋아하는 그림이나 풍경도 좋아요. 사진은 이 기기에만 저장돼요.</p><div class="row mt-s">';
     for (var i = 0; i < CS.AVATARS.length; i++) {
       h += '<button class="pick' + (!g.photo && g.avatar === CS.AVATARS[i] ? ' on' : '') + '" data-act="avatar" data-arg="' + CS.AVATARS[i] + '">' + CS.AVATARS[i] + '</button>';
     }
@@ -117,7 +121,7 @@
   };
 
   VIEWS.c2 = function () {
-    var h = scene({ place: '캐릭터 만들기 2 / 3', emo: '💭', color: 'social', text: '살면서 내가 가장 중요하게 여기는 건 뭘까? <b>2개</b>를 골라요.' });
+    var h = scene({ place: '고등학생이 된 나 만들기 2 / 3', emo: '💭', color: 'social', text: '살면서 내가 가장 중요하게 여기는 것 <b>2개</b>를 골라요. 마지막에 내 삶과 비교해 볼 거예요.' });
     h += '<div class="choices three">';
     for (var j = 0; j < CS.VALUES.length; j++) {
       var v = CS.VALUES[j];
@@ -129,12 +133,14 @@
   };
 
   VIEWS.c3 = function () {
-    var h = scene({ place: '캐릭터 만들기 3 / 3', emo: '🎚️', color: 'body',
-      text: '지금의 나는 어떤 사람일까? 점수 ' + CS.START_POINTS + '점을 나눠 줘요.', right: '남은 점수 ' + dots(allocLeft(), CS.START_POINTS) });
+    var h = scene({ place: '고등학생이 된 나 만들기 3 / 3', emo: '🎚️', color: 'body',
+      text: '지금의 나는 어떤 걸 잘할까? 자신 있는 쪽에 점수를 더 주세요. 정답은 없어요.<br><span class="muted">점수 ' + CS.START_POINTS + '점을 모두 나눠야 다음으로 갈 수 있어요. 이 점수는 고등학교 생활과 대학·직업 선택에 영향을 줘요.</span>',
+      right: '남은 점수 ' + dots(allocLeft(), CS.START_POINTS) });
     h += '<div class="field">';
     for (var k = 0; k < CS.STATS.length; k++) {
       var s = CS.STATS[k];
-      h += '<div class="alloc bg-' + s.id + '"><span class="nm">' + CS.STAT_EMO[s.id] + ' ' + s.name + '</span>' +
+      h += '<div class="alloc bg-' + s.id + '"><span class="nm">' + CS.STAT_EMO[s.id] + ' ' + s.name +
+        '<small>' + s.desc + '<br>예: ' + s.ex + '</small></span>' +
         '<button class="btn" data-act="allocMinus" data-arg="' + s.id + '" aria-label="' + s.name + ' 줄이기">−</button>' +
         '<span class="num">' + (CS.START_BASE + g.alloc[s.id]) + '</span>' +
         '<button class="btn" data-act="allocPlus" data-arg="' + s.id + '" aria-label="' + s.name + ' 늘리기">+</button></div>';
@@ -157,26 +163,52 @@
     return h;
   };
 
+  /* 학교 카드 */
+  function schoolCard(sc, rec) {
+    var tags = '<span class="tag light">' + sc.type + ' · ' + sc.region + '</span> <span class="tag light">' + dormTag(sc) + '</span>';
+    if (rec) { tags = '<span class="tag">추천: ' + sc.reason + '</span> ' + tags; }
+    var color = sc.depts ? CS.KINDS[sc.depts[0].kind].main : CS.KINDS[sc.kind].main;
+    var emo = sc.emo || (sc.depts ? CS.KINDS[sc.depts[0].kind].emo : CS.KINDS[sc.kind].emo);
+    return '<button class="ch bg-' + color + (g.school === sc.id ? ' on' : '') + '" data-act="pickSchool" data-arg="' + sc.id + '">' +
+      '<span class="emo">' + emo + '</span><span class="body"><b>' + sc.name + '</b><small>' + sc.desc +
+      (sc.depts ? ' <u>학과 ' + sc.depts.length + '개</u>' : '') + '</small><span class="tags">' + tags + '</span></span></button>';
+  }
+
   VIEWS.school = function () {
     var h = scene({ place: '고등학교 고르기', emo: '🏫', color: 'study',
-      text: g.showAll ? '모든 학교를 펼쳤어요. 어디든 고를 수 있어요.' : '내 답을 보니 이런 학교가 어울릴 것 같아요. 추천일 뿐, 선택은 내 마음이에요.' });
-    h += '<div class="choices one">';
-    /* 추천만 볼 때는 잘 맞는 순서대로, 전체 보기일 때는 원래 순서대로 */
-    var order = [];
-    for (var n = 0; n < CS.SCHOOLS.length; n++) { order.push(CS.SCHOOLS[n].id); }
-    if (!g.showAll) { order = g.recs; }
-    for (var i = 0; i < order.length; i++) {
-      var s = CS.findById(CS.SCHOOLS, order[i]);
-      var rec = g.recs.indexOf(s.id) >= 0;
-      h += ch('pickSchool', s.id, s.name, s.desc + ' ' + fx(s.bonus), schoolColor(s),
-        { on: g.school === s.id, emo: CS.SCHOOL_EMO[s.id], tag: rec ? '추천: ' + CS.SCHOOL_REASON[s.id] : '' });
+      text: g.tab === 'rec' ? '내 답을 보니 이런 학교가 어울릴 것 같아요. 추천일 뿐, 위의 탭을 눌러 어느 학교든 고를 수 있어요.' : '탭을 넘기며 학교를 둘러보세요. 학교를 누르면 학과와 자세한 정보가 나와요.' });
+    /* 탭 */
+    h += '<div class="tabs" role="tablist">';
+    h += '<button class="tab' + (g.tab === 'rec' ? ' on' : '') + '" data-act="tab" data-arg="rec">⭐ 추천</button>';
+    for (var t = 0; t < CS.SCHOOL_TABS.length; t++) {
+      var tb = CS.SCHOOL_TABS[t];
+      h += '<button class="tab bg-' + CS.TAB_COLORS[tb.id] + (g.tab === tb.id ? ' on' : '') + '" data-act="tab" data-arg="' + tb.id + '">' + tb.name + '</button>';
     }
+    h += '</div><div class="choices one">';
+    var list = [], i;
+    if (g.tab === 'rec') { for (i = 0; i < g.recs.length; i++) { list.push(CS.findById(CS.SCHOOLS, g.recs[i])); } }
+    else { for (i = 0; i < CS.SCHOOLS.length; i++) { if (CS.SCHOOLS[i].tab === g.tab) { list.push(CS.SCHOOLS[i]); } } }
+    for (i = 0; i < list.length; i++) { h += schoolCard(list[i], g.recs.indexOf(list[i].id) >= 0); }
     h += '</div>';
-    if (!g.showAll) { h += '<div class="mt"><button class="btn" data-act="showAll">전체 학교 10곳 보기</button></div>'; }
+
+    /* 고른 학교: 학과 고르기, 종목 적기 */
     var cur = CS.schoolOf(g);
-    if (cur && cur.ask) {
-      h += '<label class="field"><span class="lab">' + cur.ask + ' <span class="muted">(안 적어도 돼요)</span></span>' +
-        '<input type="text" id="inSpec" maxlength="14" value="' + esc(g.specialty) + '"></label>';
+    if (cur) {
+      h += '<div class="picked"><h3>' + cur.name + '</h3>';
+      if (cur.depts) {
+        h += '<p class="muted">학과를 골라요.</p><div class="choices three">';
+        for (var d = 0; d < cur.depts.length; d++) {
+          var dp = cur.depts[d], kd = CS.KINDS[dp.kind];
+          h += ch('pickDept', dp.id, dp.name, kd.t[0], kd.main, { on: g.dept === dp.id, emo: kd.emo });
+        }
+        h += '</div>';
+      }
+      if (cur.ask) {
+        h += '<label class="field"><span class="lab">' + cur.ask + ' <span class="muted">(안 적어도 돼요)</span></span>' +
+          '<input type="text" id="inSpec" maxlength="14" value="' + esc(g.specialty) + '"></label>';
+      }
+      var kindNow = CS.KINDS[CS.kindIdOf(cur, g.dept)];
+      h += '<p class="mt-s">입학 보너스 ' + fx(CS.bonusOf(kindNow)) + '</p></div>';
     }
     if (err) { h += '<p class="err">' + err + '</p>'; }
     return h + '<div class="mt">' + primary('enroll', '입학하기') + '</div>';
@@ -194,18 +226,18 @@
     var h = track();
     if (flash) { h += '<div class="flash">' + flash + '</div>'; }
     if (g.phase === 'act') {
-      var sit = CS.situationOf(g);
-      h += scene({ place: CS.semName(g.sem) + ' · ' + sit.place, emo: sit.emo, color: CS.SEM_COLORS[g.sem - 1], text: sit.text,
-        right: '남은 시간 ' + dots(g.points, CS.SEM_POINTS) });
+      var sit = CS.sceneOf(g);
+      var tr = CS.trackOf(g);
+      h += scene({ place: CS.semName(g.sem) + ' · ' + sit.place, emo: sit.emo, color: CS.SEM_COLORS[g.sem - 1],
+        text: '<span class="now">지금 상황</span>' + sit.text, right: '이번 학기 ' + dots(g.points, CS.SEM_POINTS) });
       if (g.stress >= CS.BURNOUT) { h += '<div class="note bg-stress"><b>몸이 보내는 신호:</b> 스트레스가 너무 높아요. 이대로 학기를 마치면 번아웃이 와요.</div>'; }
-      h += '<div class="choices">';
+      h += '<p class="ask">이 시기, 나는 어디에 시간을 쓸까?</p><div class="choices">';
       var acts = CS.actionsFor(g);
-      var school = CS.schoolOf(g);
       for (var j = 0; j < acts.length; j++) {
         var a = acts[j];
-        var color = (a.id === 'special') ? schoolColor(school) : CS.ACTION_COLORS[a.id];
-        h += ch('action', a.id, CS.actionText(g, a.id), fx(CS.resolveEff(g, a.eff)), color,
-          { emo: a.id === 'special' ? CS.SCHOOL_EMO[school.id] : CS.ACTION_EMO[a.id] });
+        var color = a.special ? tr.main : CS.colorOfEff(g, a.eff);
+        h += ch('action', a.id, a.label, fx(CS.resolveEff(g, a.eff)), color,
+          { emo: a.emo, tag: a.special ? tr.school.name + ' 전용' : '', tagCls: 'light' });
       }
       h += '</div>';
     } else if (g.phase === 'event') {
@@ -233,8 +265,9 @@
     var proOk = g.stats.body >= CS.PRO_MIN || g.stats.create >= CS.PRO_MIN;
     var startOk = g.exp >= CS.STARTUP_EXP;
     h += '<div class="choices one">';
-    h += ch('path', 'univ', '대학에 진학한다', '대학 유형과 학과를 골라요.', 'study', { emo: '🏛️' });
+    h += ch('path', 'univ', '대학에 진학한다', '단과대와 학과를 골라요. 사범대, 교대, 공대, 예체능대, 전문대…', 'study', { emo: '🏛️' });
     h += ch('path', 'work', '바로 취업한다', '일하면서 배워요. 나중에 대학에 갈 수도 있어요.', 'body', { emo: '💼' });
+    h += ch('path', 'abroad', '유학을 떠난다', '어학, 미술, 음악, 요리, 스포츠… 다른 나라에서 배워요.', 'exp', { emo: '🛫' });
     h += ch('path', 'pro', '선수·예술가로 바로 뛰어든다', '실업팀, 무용단, 연재, 무대로 곧장 가요.', 'create',
       { emo: '🔥', disabled: !proOk, tag: '조건: 체력 또는 창의 ' + CS.PRO_MIN + ' 이상', tagCls: proOk ? 'light' : 'no' });
     h += ch('path', 'startup', '나만의 길을 만든다', '창업하거나 내 일을 직접 시작해요.', 'exp',
@@ -243,55 +276,72 @@
     return h + '</div>';
   };
 
-  VIEWS.uni = function () {
-    var h = scene({ place: '원서 접수', emo: '✉️', color: 'study', title: '어떤 대학에 지원할까요?',
-      text: '조건이 조금 부족해도 도전 지원을 할 수 있어요. 결과는 아무도 몰라요.' });
+  /* 고를 수 있는지 표시: 조건을 채우면 조건만, 못 채우면 무엇이 얼마나 부족한지 */
+  function reqOpt(req, emo, extraTag) {
+    var ok = CS.checkReq(g, req).ok;
+    var opt = { emo: emo, disabled: !ok };
+    if (!ok) { opt.tag = CS.needText(g, req); opt.tagCls = 'no'; }
+    else if (extraTag) { opt.tag = extraTag; }
+    else if (CS.reqText(req) !== '조건 없음') { opt.tag = CS.reqText(req); opt.tagCls = 'light'; }
+    return opt;
+  }
+
+  VIEWS.college = function () {
+    var col = CS.findById(CS.COLLEGES, g.college) || CS.COLLEGES[0];
+    var h = scene({ place: '학과 고르기', emo: '🏛️', color: 'study', title: '어떤 학과에서 공부할까요?',
+      text: '단과대를 누르면 학과가 나와요. 능력치가 모자란 학과는 회색으로 막혀 있어요.' });
+    h += '<div class="tabs">';
+    for (var t = 0; t < CS.COLLEGES.length; t++) {
+      var c = CS.COLLEGES[t];
+      h += '<button class="tab bg-' + c.color + (c.id === col.id ? ' on' : '') + '" data-act="college" data-arg="' + c.id + '">' + c.emo + ' ' + c.name + '</button>';
+    }
+    h += '</div><p class="mt-s muted">' + col.desc + '</p><div class="choices">';
+    var top = CS.topFields(g);
+    for (var i = 0; i < col.majors.length; i++) {
+      var m = col.majors[i];
+      var good = g.exp >= 3 && top.indexOf(m[2]) >= 0 && CS.checkReq(g, m[3]).ok;
+      h += ch('major', m[0], m[1], CS.FIELDS[m[2]].name + ' 분야로 이어져요', col.color,
+        reqOpt(m[3], CS.FIELD_EMO[m[2]], good ? '내 강점과 맞음' : ''));
+    }
+    h += '</div>';
+    if (g.exp < 3) { h += '<p class="muted mt-s">진로 탐색을 3번 이상 했다면 내 강점과 맞는 학과에 표시가 붙었을 거예요.</p>'; }
+    return h + '<div class="mt">' + plain('backGrad', '다른 길 보기') + '</div>';
+  };
+
+  VIEWS.work = function () {
+    var tr = CS.trackOf(g);
+    var h = scene({ place: '취업 준비', emo: '💼', color: 'body', title: '어디에서 일을 시작할까요?',
+      text: '고등학교에서 배운 것과 이어지는 일에는 「내 학과와 맞음」 표시가 있어요.' });
+    var mine = [], rest = [], i;
+    for (i = 0; i < CS.WORK.length; i++) { (CS.WORK[i][4].indexOf(tr.kindId) >= 0 ? mine : rest).push(CS.WORK[i]); }
+    var list = mine.concat(rest);
     h += '<div class="choices">';
-    for (var i = 0; i < CS.UNIS.length; i++) {
-      var u = CS.UNIS[i];
-      var chk = CS.checkReq(g, u.req);
-      var tag = chk.ok ? '지원 가능' : (chk.gap <= 3 ? '도전 지원 (' + chk.lacks.join(', ') + ' 조금 부족)' : chk.lacks.join(', ') + ' 많이 부족');
-      h += ch('applyUni', u.id, u.name, u.desc + ' 조건: ' + CS.reqText(u.req), chk.ok ? 'study' : 'social',
-        { emo: CS.UNI_EMO[u.id], disabled: !chk.ok && chk.gap > 3, tag: tag, tagCls: chk.ok ? '' : 'no' });
+    for (i = 0; i < list.length; i++) {
+      var w = list[i];
+      h += ch('work', w[0], w[1], CS.FIELDS[w[2]].name + ' 분야', CS.FIELDS[w[2]].keys[0],
+        reqOpt(w[3], CS.FIELD_EMO[w[2]], mine.indexOf(w) >= 0 ? '내 학과와 맞음' : ''));
     }
     return h + '</div><div class="mt">' + plain('backGrad', '다른 길 보기') + '</div>';
   };
 
-  VIEWS.fail = function () {
-    var u = CS.findById(CS.UNIS, g.failUni);
-    var h = scene({ place: u.name + ' 합격자 발표', emo: '🌧️', color: 'stress', title: '불합격',
-      text: '합격자 명단에 내 이름이 없어요. 속상하고, 한동안 아무 말도 하고 싶지 않아요.<br>그래도 불합격은 끝이 아니에요. 여기서 고를 수 있는 길이 있어요.' });
-    h += '<div class="choices one">';
-    h += ch('retry', '', '1년 더 준비해서 다시 도전한다', '부족했던 부분을 채워요. ' + fx({ stress: 2 }), 'create', { emo: '🔥' });
-    h += ch('backGrad', '', '다른 길을 찾아본다', '다른 대학, 취업, 나만의 길을 다시 살펴봐요.', 'exp', { emo: '🧭' });
-    return h + '</div>';
-  };
-
-  VIEWS.major = function () {
-    var u = CS.findById(CS.UNIS, g.path.uni);
-    var list = CS.majorsFor(u.id);
-    var h = scene({ place: u.name, emo: '🎉', color: 'social', title: '합격! 어떤 학과에서 공부할까요?',
-      text: g.exp >= 3 ? '진로 탐색을 해 둔 덕분에 내 강점과 맞는 학과가 표시돼요.' : '진로 탐색을 3번 이상 했다면 내 강점과 맞는 학과가 표시됐을 거예요.' });
-    var group = '';
-    for (var i = 0; i < list.length; i++) {
-      var m = list[i];
-      if (m.group !== group) { h += (group ? '</div>' : '') + '<p class="group-title">' + m.group + '</p><div class="choices three" style="margin-top:8px">'; group = m.group; }
-      var lack = m.req ? !CS.checkReq(g, m.req).ok : false;
-      var good = g.exp >= 3 && CS.readiness(g, m.field) >= CS.READY_MID + 2;
-      h += ch('major', m.id, m.name, '', CS.GROUP_COLORS[m.group] || 'white',
-        { emo: CS.FIELD_EMO[m.field], disabled: lack, tag: lack ? '조건: ' + CS.reqText(m.req) : (good ? '내 강점과 맞음' : ''), tagCls: lack ? 'no' : '' });
+  VIEWS.abroad = function () {
+    var h = scene({ place: '출국 준비', emo: '🛫', color: 'exp', title: '어떤 유학을 떠날까요?',
+      text: '낯선 나라에서 말도 배우고 실력도 키워요. 나라는 예시예요.' });
+    h += '<div class="choices">';
+    for (var i = 0; i < CS.ABROAD.length; i++) {
+      var ab = CS.ABROAD[i];
+      h += ch('abroad', ab[0], ab[1], ab[2], CS.FIELDS[ab[3]].keys[0], reqOpt(ab[4], CS.FIELD_EMO[ab[3]], ''));
     }
-    return h + '</div>';
+    return h + '</div><div class="mt">' + plain('backGrad', '다른 길 보기') + '</div>';
   };
 
   /* 분야 고르기 (취업, 바로 활동, 창업, 분야 바꾸기 공용) */
   VIEWS.pickField = function () {
-    var titles = { work: '어떤 분야에서 일을 시작할까요?', pro: '어떤 무대로 뛰어들까요?', startup: '어떤 분야에서 내 일을 시작할까요?', change: '어느 분야로 바꿀까요?' };
-    var emos = { work: '💼', pro: '🔥', startup: '🚀', change: '🔄' };
+    var titles = { pro: '어떤 무대로 뛰어들까요?', startup: '어떤 분야에서 내 일을 시작할까요?', change: '어느 분야로 바꿀까요?' };
+    var emos = { pro: '🔥', startup: '🚀', change: '🔄' };
     var h = scene({ place: '분야 고르기', emo: emos[g.pickMode], color: 'exp', title: titles[g.pickMode], text: '분야마다 특히 중요한 능력이 달라요.' });
     var ids = [], i;
-    if (g.pickMode === 'work') { ids = CS.WORK_FIELDS; }
-    else if (g.pickMode === 'startup') { ids = CS.STARTUP_FIELDS; }
+    if (g.pickMode === 'startup') { ids = CS.STARTUP_FIELDS; }
     else if (g.pickMode === 'pro') {
       for (i = 0; i < CS.PRO_FIELDS.length; i++) { if (CS.checkReq(g, CS.PRO_FIELDS[i].req).ok) { ids.push(CS.PRO_FIELDS[i].field); } }
     } else {
@@ -320,13 +370,33 @@
 
   VIEWS.tw2 = function () {
     var h = scene({ place: '스물다섯 즈음', emo: CS.FIELD_EMO[g.path.field], color: 'social',
-      title: '나는 어떤 방식으로 일하고 싶나요?', text: CS.FIELDS[g.path.field].name + ' 분야에서 내 자리를 찾아야 할 때예요. 마지막 선택이에요.' });
+      title: '나는 어떤 방식으로 일하고 싶나요?', text: CS.FIELDS[g.path.field].name + ' 분야에서 내 자리를 찾아야 할 때예요. 먼저 원하는 일하는 방식을 고르고, 다음에 구체적인 직업을 골라요.' });
     h += '<div class="choices one">';
     for (var i = 0; i < CS.STYLES.length; i++) {
       var s = CS.STYLES[i];
       h += ch('style', s.id, s.label, '', CS.STYLE_COLORS[s.id], { emo: CS.STYLE_EMO[s.id] });
     }
     return h + '</div>';
+  };
+
+  VIEWS.job = function () {
+    var f = CS.FIELDS[g.path.field];
+    var want = CS.findById(CS.STYLES, g.style);
+    var h = scene({ place: '스물일곱 즈음', emo: CS.FIELD_EMO[g.path.field], color: CS.STYLE_COLORS[g.style],
+      title: '어떤 일을 하게 될까요?', text: f.name + ' 분야의 직업들이에요. 「' + want.short + '」 방식과 맞는 직업에 표시가 있지만, 어느 직업이든 골라도 돼요. 마지막 선택이에요.' });
+    /* 원하는 방식과 맞는 직업을 위로 */
+    var order = [], i;
+    for (i = 0; i < f.jobs.length; i++) { if (f.jobs[i][2] === g.style) { order.push(i); } }
+    for (i = 0; i < f.jobs.length; i++) { if (f.jobs[i][2] !== g.style) { order.push(i); } }
+    h += '<div class="choices">';
+    for (var n = 0; n < order.length; n++) {
+      var j = CS.jobOf(g.path.field, order[n]);
+      var st = CS.findById(CS.STYLES, j.style);
+      var match = j.style === g.style;
+      h += ch('job', order[n], j.name, j.desc, CS.STYLE_COLORS[j.style],
+        { emo: CS.STYLE_EMO[j.style], tag: match ? '내 방식과 맞음' : st.short + ' 쪽 일', tagCls: match ? '' : 'light' });
+    }
+    return h + '</div><div class="mt">' + plain('backStyle', '일하는 방식 다시 고르기') + '</div>';
   };
 
   VIEWS.ending = function () {
@@ -336,7 +406,11 @@
       '<div><p class="muted">15년 뒤의 나 ' + CS.FIELD_EMO[g.path.field] + '</p><h2>' + esc(g.name) + '</h2></div></div>' +
       '<div class="in"><h2>' + e.title + '</h2><p class="mt-s">' + e.desc + '</p><hr><h3>걸어온 길</h3><ul>';
     for (var i = 0; i < e.pathLines.length; i++) { h += '<li>' + esc(e.pathLines[i]) + '</li>'; }
-    h += '</ul><hr><h3>내가 중요하게 여긴 것과 지금의 삶</h3><p>' + e.fitText + '</p><p class="muted mt-s">' + e.stressText + '</p></div></div>';
+    var rc = CS.uniRecs(g);
+    h += '</ul><div class="recs"><b>' + rc.title + '</b><div>';
+    for (var r = 0; r < rc.items.length; r++) { h += '<span class="tag light">' + rc.items[r] + '</span> '; }
+    h += '</div>' + (g.path.type === 'univ' ? '<small class="muted">학과 이름은 대학마다 조금씩 달라요. 정확한 정보는 대학 입학처에서 확인하세요.</small>' : '') + '</div>';
+    h += '<hr><h3>내가 중요하게 여긴 것과 지금의 삶</h3><p>' + e.fitText + '</p><p class="mt-s">' + e.styleText + '</p><p class="muted mt-s">' + e.stressText + '</p></div></div>';
 
     h += '<h2 class="mt">돌아보기</h2>';
     h += '<label class="field"><span class="lab">게임 속 나와 지금의 나는 무엇이 닮았고, 무엇이 다른가요?</span><textarea id="inA">' + esc(g.reflect.a) + '</textarea></label>';
@@ -389,31 +463,47 @@
   };
   ON.quiz = function (idx) {
     CS.answerQuiz(g, parseInt(idx, 10));
-    if (g.quizIdx >= CS.QUIZ.length) { g.recs = CS.recommendSchools(g); g.showAll = false; go('school'); }
+    if (g.quizIdx >= CS.QUIZ.length) { g.recs = CS.recommendSchools(g); g.tab = 'rec'; go('school'); }
     else { render(); }
   };
-  ON.quizSkip = function () { g.recs = ['general']; g.showAll = true; go('school'); };
-  ON.showAll = function () { g.showAll = true; render(); };
-  ON.pickSchool = function (id) { g.school = id; g.specialty = ''; err = ''; render(); };
+  ON.quizSkip = function () { g.recs = []; g.tab = 'general'; go('school'); };
+  ON.tab = function (id) { g.tab = id; render(); };
+  ON.pickSchool = function (id) {
+    if (g.school !== id) { g.school = id; g.specialty = ''; g.dept = null; }
+    var sc = CS.schoolOf(g);
+    if (sc.depts && sc.depts.length === 1) { g.dept = sc.depts[0].id; }
+    err = ''; render();
+    var el = document.querySelector('.picked');
+    if (el && el.scrollIntoView) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  };
+  ON.pickDept = function (id) { g.dept = id; err = ''; render(); };
   ON.enroll = function () {
     var s = CS.schoolOf(g);
     if (!s) { err = '학교를 하나 골라 주세요.'; render(); return; }
+    if (s.depts && !g.dept) { err = '학과를 하나 골라 주세요.'; render(); return; }
     g.specialty = g.specialty.trim();
-    CS.applyEff(g, s.bonus);
-    g.log.push(s.name + ' 입학');
+    var tr = CS.trackOf(g);
+    var bonus = CS.bonusOf(tr.kind);
+    CS.applyEff(g, bonus);
+    g.log.push(tr.name + ' 입학');
     g.sem = 1; g.points = CS.SEM_POINTS; g.phase = 'act';
-    flash = '<b>' + s.name + '에 입학했어요.</b> ' + fx(s.bonus);
+    flash = '<b>' + tr.name + '에 입학했어요.</b> ' + fx(bonus);
     go('semester');
   };
   ON.action = function (id) {
     var r = CS.doAction(g, id);
-    if (r) { flash = (r.crit ? '<span class="crit">대성공!</span>' : '') + '<b>' + r.text + '</b> ' + fx(CS.resolveEff(g, r.eff)); }
+    if (r) {
+      flash = (r.crit ? '<span class="crit">대성공!</span>' : '') + '<b>' + r.text + '</b> ' + fx(CS.resolveEff(g, r.eff));
+      if (r.bonus) { flash += '<div class="bonus"><span class="crit">깜짝!</span> ' + r.bonus.text + ' ' + fx(r.bonus.eff) + '</div>'; }
+    }
     render();
   };
   ON.event = function (idx) { CS.chooseEvent(g, parseInt(idx, 10)); render(); };
   ON.nextSem = function () { CS.nextSemester(g); render(); window.scrollTo(0, 0); };
   ON.path = function (type) {
-    if (type === 'univ') { go('uni'); return; }
+    if (type === 'univ') { go('college'); return; }
+    if (type === 'work') { go('work'); return; }
+    if (type === 'abroad') { go('abroad'); return; }
     if (type === 'gap') {
       CS.gapYear(g);
       flash = '<b>1년 동안 낯선 곳을 여행하고 여러 일을 해 봤어요.</b> ' + fx({ exp: 3, stress: -3 }) + ' 이제 다시 골라 볼까요?';
@@ -421,18 +511,32 @@
     }
     g.pickMode = type; go('pickField');
   };
-  ON.backGrad = function () { g.failUni = null; g.path = null; go('grad'); };
-  ON.applyUni = function (id) { CS.applyUni(g, id); render(); window.scrollTo(0, 0); };
-  ON.retry = function () { CS.retryUni(g); render(); window.scrollTo(0, 0); };
+  ON.backGrad = function () { g.path = null; go('grad'); };
+  ON.college = function (id) { g.college = id; render(); };
   ON.major = function (id) {
-    var m = CS.findById(CS.MAJORS, id);
-    g.path.major = id; g.path.field = m.field;
+    var m = CS.majorOf(id);
+    if (!m || !CS.checkReq(g, m.req).ok) { return; }
+    g.path = { type: 'univ', major: id, field: m.field };
+    g.log.push(CS.pathText(g));
+    go('tw1');
+  };
+  ON.work = function (id) {
+    var w = CS.rowOf(CS.WORK, id);
+    if (!w || !CS.checkReq(g, w[3]).ok) { return; }
+    g.path = { type: 'work', work: id, field: w[2] };
+    g.log.push(CS.pathText(g));
+    go('tw1');
+  };
+  ON.abroad = function (id) {
+    var ab = CS.rowOf(CS.ABROAD, id);
+    if (!ab || !CS.checkReq(g, ab[4]).ok) { return; }
+    g.path = { type: 'abroad', abroad: id, field: ab[3] };
     g.log.push(CS.pathText(g));
     go('tw1');
   };
   ON.field = function (id) {
     if (g.pickMode === 'change') {
-      g.path.field = id; g.path.major = null; g.path.changed = true;
+      g.path.field = id; g.path.changed = true;   /* 처음 고른 학과·일자리는 그대로 기록 */
       CS.applyEff(g, { exp: 1 });
       g.log.push('20대: ' + CS.FIELDS[id].name + ' 분야로 방향을 바꿨다');
       go('tw2'); return;
@@ -445,7 +549,13 @@
     if (id === 'change') { g.pickMode = 'change'; go('pickField'); return; }
     CS.applyTw1(g, id); go('tw2');
   };
-  ON.style = function (id) { g.style = id; go('ending'); };
+  ON.style = function (id) { g.style = id; g.job = null; go('job'); };
+  ON.backStyle = function () { go('tw2'); };
+  ON.job = function (idx) {
+    g.job = parseInt(idx, 10);
+    g.log.push('직업: ' + CS.jobOf(g.path.field, g.job).name);
+    go('ending');
+  };
   ON.saveCard = function () {
     CS.drawCard(g, CS.computeEnding(g), function (canvas) {
       var url = canvas.toDataURL('image/png');

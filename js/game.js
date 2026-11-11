@@ -8,6 +8,21 @@ CS.findById = function (list, id) {
 };
 CS.schoolOf = function (g) { return CS.findById(CS.SCHOOLS, g.school); };
 
+/* 지금 다니는 학교·학과 정보 한 묶음 */
+CS.trackOf = function (g) {
+  var school = CS.schoolOf(g);
+  if (!school) { return null; }
+  var kindId = CS.kindIdOf(school, g.dept);
+  var kind = CS.KINDS[kindId];
+  var dept = null;
+  if (school.depts) {
+    for (var i = 0; i < school.depts.length; i++) { if (school.depts[i].id === g.dept) { dept = school.depts[i]; } }
+    if (!dept) { dept = school.depts[0]; }
+  }
+  return { school: school, dept: dept, kind: kind, kindId: kindId, main: kind.main, group: kind.g,
+    name: school.name + (dept ? ' ' + dept.name : '') };
+};
+
 /* 능력치 하나 읽기 (스트레스, 진로 경험 포함) */
 CS.statOf = function (g, key) {
   if (key === 'stress') { return g.stress; }
@@ -18,10 +33,10 @@ CS.statOf = function (g, key) {
 /* eff 안의 main 을 그 학교의 주특기 능력치로 바꿔 줌 */
 CS.resolveEff = function (g, eff) {
   var out = {};
-  var school = CS.schoolOf(g);
+  var tr = CS.trackOf(g);
   for (var k in eff) {
     if (!eff.hasOwnProperty(k)) { continue; }
-    var key = (k === 'main') ? (school ? school.main : 'study') : k;
+    var key = (k === 'main') ? (tr ? tr.main : 'study') : k;
     out[key] = (out[key] || 0) + eff[k];
   }
   return out;
@@ -53,32 +68,43 @@ CS.semName = function (sem) {
   return Math.ceil(sem / 2) + '학년 ' + (sem % 2 === 1 ? '1' : '2') + '학기';
 };
 
-/* 이번 학기에 할 수 있는 활동 목록 (학교 특별 활동 + 공통 활동) */
+/* 이번 장면의 선택지: 학교 전용 활동 1개 + 장면 선택지 6개 */
 CS.actionsFor = function (g) {
-  var s = CS.schoolOf(g);
-  var list = [{ id: 'special', label: s.special.label, eff: s.special.eff }];
-  return list.concat(CS.ACTIONS);
+  var tr = CS.trackOf(g);
+  var grade = Math.ceil(g.sem / 2);
+  var list = [{ id: 'special', label: tr.kind.t[grade - 1], eff: tr.kind.eff, emo: tr.kind.emo, special: true }];
+  var sc = CS.sceneOf(g);
+  for (var i = 0; i < sc.c.length; i++) {
+    var c = sc.c[i];
+    list.push({ id: 'c' + i, label: c[1], eff: CS.EFF[c[2]], emo: c[0],
+      bonus: c[3] ? { text: c[3], eff: CS.EFF[c[4]] } : null });
+  }
+  return list;
 };
 
-/* 활동 하나 하기. 시간 포인트를 다 쓰면 사건 단계로 넘어감 */
+/* 활동 하나 하기. 가끔 '대성공'(능력치 +1)이나 깜짝 이벤트가 생김.
+   장면 4개를 모두 지나면 돌발 사건 단계로 넘어감 */
 CS.doAction = function (g, actionId) {
   if (g.points <= 0) { return null; }
   var act = CS.findById(CS.actionsFor(g), actionId);
   if (!act) { return null; }
-  /* 가끔 '대성공': 오르는 능력치 하나가 +1 더 오름 */
   var eff = {}, k, crit = false;
   for (k in act.eff) { if (act.eff.hasOwnProperty(k)) { eff[k] = act.eff[k]; } }
   if (Math.random() < CS.CRIT_RATE) {
     for (k in eff) { if (eff.hasOwnProperty(k) && k !== 'stress' && eff[k] > 0) { eff[k] += 1; crit = true; break; } }
   }
-  var text = CS.actionText(g, actionId);
   CS.applyEff(g, eff);
+  var bonus = null;
+  if (act.bonus && Math.random() < CS.BONUS_RATE) {
+    CS.applyEff(g, act.bonus.eff);
+    bonus = act.bonus;
+  }
   g.points -= 1;
   if (g.points === 0) {
     g.eventId = CS.pickEvent(g).id;
     g.phase = 'event';
   }
-  return { act: act, eff: eff, crit: crit, text: text };
+  return { act: act, eff: eff, crit: crit, text: act.label, bonus: bonus };
 };
 
 /* 이번 학기 사건 고르기: 내 학교 전용 사건이 있으면 우선, 없으면 공통 사건 중 무작위 */
@@ -87,7 +113,7 @@ CS.pickEvent = function (g) {
   for (var i = 0; i < CS.EVENTS.length; i++) {
     var ev = CS.EVENTS[i];
     if (ev.sem !== g.sem) { continue; }
-    if (ev.tracks) { if (ev.tracks.indexOf(g.school) >= 0) { own.push(ev); } }
+    if (ev.tracks) { if (ev.tracks.indexOf(CS.trackOf(g).group) >= 0) { own.push(ev); } }
     else { common.push(ev); }
   }
   var pool = own.length ? own : common;
@@ -115,7 +141,7 @@ CS.nextSemester = function (g) {
   g.resultEff = null;
   if (g.sem >= 6) {
     g.step = 'grad';
-    g.log.push(CS.schoolOf(g).name + ' 졸업');
+    g.log.push(CS.trackOf(g).school.name + ' 졸업');
     return;
   }
   g.sem += 1;
@@ -140,54 +166,27 @@ CS.reqText = function (req) {
   return parts.length ? parts.join(', ') : '조건 없음';
 };
 
-/* 대학 지원. 조건을 채웠으면 합격, 3점 이내로 부족하면 40% 확률로 합격 */
-CS.applyUni = function (g, uniId) {
-  var uni = CS.findById(CS.UNIS, uniId);
-  var chk = CS.checkReq(g, uni.req);
-  var pass = chk.ok || (chk.gap <= 3 && Math.random() < 0.4);
-  if (pass) {
-    g.path = { type: 'univ', uni: uniId, major: null, field: null };
-    g.step = 'major';
-  } else {
-    g.failUni = uniId;
-    g.step = 'fail';
-    g.log.push(uni.name + ' 지원, 불합격');
+/* 필요한 능력치를 못 채웠을 때 보여 줄 문구: "체력 12 필요 (지금 2)" */
+CS.needText = function (g, req) {
+  var parts = [];
+  for (var k in req) {
+    if (req.hasOwnProperty(k) && CS.statOf(g, k) < req[k]) { parts.push(CS.STAT_NAMES[k] + ' ' + req[k] + ' 필요 (지금 ' + CS.statOf(g, k) + ')'); }
   }
-  return pass;
-};
-
-/* 1년 더 준비해서 재도전: 부족했던 능력치를 채우고 합격 */
-CS.retryUni = function (g) {
-  var uni = CS.findById(CS.UNIS, g.failUni);
-  for (var k in uni.req) {
-    if (!uni.req.hasOwnProperty(k)) { continue; }
-    if (k === 'exp') { g.exp = Math.max(g.exp, uni.req[k]); }
-    else { g.stats[k] = Math.max(g.stats[k], uni.req[k]); }
-  }
-  CS.applyEff(g, { stress: 2 });
-  g.retried = true;
-  g.log.push('1년 더 준비해 다시 도전, 합격');
-  g.path = { type: 'univ', uni: uni.id, major: null, field: null };
-  g.failUni = null;
-  g.step = 'major';
-};
-
-/* 그 대학에서 고를 수 있는 학과 */
-CS.majorsFor = function (uniId) {
-  var uni = CS.findById(CS.UNIS, uniId);
-  var out = [];
-  for (var i = 0; i < CS.MAJORS.length; i++) {
-    var m = CS.MAJORS[i];
-    if (uni.fields) { if (uni.fields.indexOf(m.field) >= 0) { out.push(m); } }
-    else if (m.field !== 'mil') { out.push(m); }
-  }
-  return out;
+  return parts.join(', ');
 };
 
 /* 분야 준비도 = 그 분야 핵심 능력치 2개의 합 */
 CS.readiness = function (g, fieldId) {
   var f = CS.FIELDS[fieldId];
   return g.stats[f.keys[0]] + g.stats[f.keys[1]];
+};
+
+/* 내 능력치와 가장 잘 맞는 분야 3개 (학과에 「내 강점과 맞음」 표시용) */
+CS.topFields = function (g) {
+  var list = [];
+  for (var k in CS.FIELDS) { if (CS.FIELDS.hasOwnProperty(k)) { list.push({ id: k, r: CS.readiness(g, k) }); } }
+  list.sort(function (a, b) { return b.r - a.r; });
+  return [list[0].id, list[1].id, list[2].id];
 };
 
 /* 1년 쉬며 탐색 (갭이어) */
