@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>나의 다음 페이지 - 진로 설계 게임</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">나의 다음 페이지</div>
+  <div class="top-btns">
+    <button class="btn ghost" data-act="help">? 사용법</button>
+    <button class="btn ghost" data-act="restart">처음부터</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <aside id="side" class="side"></aside>
+  <main id="stage" class="stage"></main>
+</div>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-box">
+    <h2>사용법</h2>
+    <ol>
+      <li>이름과 얼굴(사진 또는 이모지)을 정하고, 내가 중요하게 여기는 것 2개를 골라요.</li>
+      <li>질문 6개에 답하면 어울리는 고등학교를 추천해 줘요. 추천일 뿐, 선택은 내 마음이에요.</li>
+      <li>학기마다 장면이 4번 나와요. 그때마다 하나만 고를 수 있어요. 색을 보면 무엇이 오르는지 알 수 있어요.</li>
+      <li>스트레스가 8 이상이면 번아웃이 와요. 쉬는 것도 선택이에요.</li>
+      <li>졸업 후의 길을 고르고, 15년 뒤의 나를 만나요. 마지막 카드는 점수표가 아니에요.</li>
+    </ol>
+    <p class="muted">진행 상황과 사진은 이 기기에만 저장돼요. 「처음부터」를 누르면 모두 지워져요.</p>
+    <button class="btn" data-act="closeHelp">닫기</button>
+  </div>
+</div>
+
+<footer class="foot">만든이 취미쌤</footer>
+
+<script src="js/data-schools.js"></script>
+<script src="js/data-events.js"></script>
+<script src="js/data-paths.js"></script>
+<script src="js/data-quiz.js"></script>
+<script src="js/data-scenes.js"></script>
+<script src="js/state.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ending.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
