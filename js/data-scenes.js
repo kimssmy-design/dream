@@ -217,7 +217,7 @@ CS.STAT_EMO = { study: '📘', body: '💪', social: '👫', create: '🎨' };
 CS.TAB_COLORS = { general: 'study', special: 'create', voc: 'body', alt: 'rest' };
 CS.UNI_EMO = { top: '🏛️', kaist: '🧬', nat: '🌳', univ: '🎒', college: '🧰', artUniv: '🖌️', knua: '🎭', peUniv: '🏟️', academy: '⚓', abroad: '🛫' };
 CS.FIELD_EMO = { human: '📖', biz: '💼', care: '🤝', media: '🎥', law: '⚖️', edu: '🍎', sci: '🔬', it: '💻', eng: '🛠️', med: '🩺',
-  art: '🎨', ani: '🎬', dance: '💃', perf: '🎤', sport: '🏅', global: '🌍', mil: '🎖️', cook: '🍳', tech: '🔧', eco: '🌱', air: '✈️', beauty: '💄' };
+  art: '🎨', ani: '🎬', dance: '💃', music: '🎵', acting: '🎭', sport: '🏅', global: '🌍', mil: '🎖️', cook: '🍳', tech: '🔧', eco: '🌱', air: '✈️', beauty: '💄', sea: '🌊' };
 CS.GROUP_COLORS = { '인문': 'social', '사회': 'social', '교육': 'body', '자연': 'study', '공학': 'study', '의료·보건': 'rest',
   '예술·체육': 'create', '외국어·국제': 'exp', '생활·서비스': 'body', '군·안전': 'stress' };
 CS.STYLE_EMO = { stable: '🏠', challenge: '🔥', worth: '🤝', free: '🧭' };
