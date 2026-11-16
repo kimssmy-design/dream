@@ -2,13 +2,13 @@
 var CS = window.CS || {};
 window.CS = CS;
 
-CS.SAVE_KEY = 'career-sim-v4';
+CS.SAVE_KEY = 'career-sim-v5';
 
 /* 새 게임의 처음 상태 */
 CS.newGame = function () {
   return {
     step: 'intro',            /* 지금 보고 있는 화면 */
-    name: '', avatar: '🙂',
+    name: '', avatar: '🙂', region: null, city: null,   /* 사는 시·도, 시·군(도 지역만, 선택) */
     photo: '',                /* 학생이 올린 사진 (작게 줄인 그림 데이터, 이 기기에만 저장) */
     quizIdx: 0, quizScore: {}, recs: [], tab: 'rec',
     values: [],               /* 고른 가치관 id 2개 */

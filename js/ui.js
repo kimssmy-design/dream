@@ -56,8 +56,10 @@
   }
   /* 입학한 뒤에만 학교 정보가 보이도록 (고르는 중에는 '입학 전') */
   function enrolled() { return g.school && g.step !== 'school' && g.step !== 'quiz'; }
+  /* 기숙사가 확인된 학교만 표시 */
   function dormTag(sc) {
-    return '🏠 ' + CS.DORM_TEXT[sc.dorm] + (sc.dormNote ? ' (' + sc.dormNote + ')' : '');
+    if (!CS.DORM_TEXT[sc.dorm]) { return ''; }
+    return ' <span class="tag light">🏠 ' + CS.DORM_TEXT[sc.dorm] + (sc.dormNote ? ' (' + sc.dormNote + ')' : '') + '</span>';
   }
 
   /* ---------- 왼쪽: 고등학생이 된 나 ---------- */
@@ -67,7 +69,7 @@
     var creating = (g.step === 'c1' || g.step === 'c2' || g.step === 'c3');
     var h = '<div class="me bg-' + (tr ? tr.main : 'white') + '">' + face('l') +
       '<div><div class="nm">' + (esc(g.name) || '이름 없음') + '</div><div class="muted">' +
-      (tr ? tr.kind.emo + ' ' + esc(tr.name) : '입학 전') + (g.specialty ? ' · ' + esc(g.specialty) : '') + '</div></div></div>';
+      (tr ? (tr.school.emo || tr.kind.emo) + ' ' + esc(tr.name) : (CS.regionOf(g.region) ? '📍 ' + CS.regionOf(g.region).name + (g.city ? ' ' + g.city : '') + ' · ' : '') + '입학 전') + (g.specialty ? ' · ' + esc(g.specialty) : '') + '</div></div></div>';
     if (g.values.length) {
       h += '<h3>중요하게 여기는 것</h3><div class="vals">';
       for (var i = 0; i < g.values.length; i++) {
@@ -101,8 +103,9 @@
     return '<div class="title-screen"><div class="steps"><span>🎒</span><span>🏫</span><span>🎓</span><span>✨</span></div>' +
       '<h1>나의 다음 페이지</h1>' +
       '<p>고등학생이 된 나를 키워서, 15년 뒤의 나를 만나요.</p>' +
-      '<p class="muted">30분쯤 걸려요. 고등학교 ' + CS.SCHOOLS.length + '곳, 대학 학과 ' + CS.majorCount() + '개, 직업 엔딩 ' + CS.jobCount() + '가지. 정답은 없어요.</p>' +
-      '<div class="mt">' + primary('start', '게임 시작') + '</div></div>';
+      '<p class="muted">30분쯤 걸려요. 전국 ' + CS.REGIONS.length + '개 시·도 고등학교 ' + CS.SCHOOLS.length + '곳, 대학 학과 ' + CS.majorCount() + '개, 직업 엔딩 ' + CS.jobCount() + '가지. 정답은 없어요.</p>' +
+      '<div class="mt">' + primary('start', '게임 시작') + '</div>' +
+      '<p class="muted small mt">만든이 취미쌤 · <a href="https://blog.naver.com/ssam_hobbybox" target="_blank" rel="noopener">blog.naver.com/ssam_hobbybox</a></p></div>';
   };
 
   VIEWS.c1 = function () {
@@ -116,6 +119,22 @@
       h += '<button class="pick' + (!g.photo && g.avatar === CS.AVATARS[i] ? ' on' : '') + '" data-act="avatar" data-arg="' + CS.AVATARS[i] + '">' + CS.AVATARS[i] + '</button>';
     }
     h += '</div></div>';
+    h += '<div class="field"><span class="lab">내가 사는 곳</span><p class="muted" style="margin-bottom:8px">이 지역의 고등학교가 나와요.</p><div class="row">';
+    for (var r = 0; r < CS.REGIONS.length; r++) {
+      var rg = CS.REGIONS[r];
+      h += '<button class="tab' + (g.region === rg.id ? ' on' : '') + '" data-act="region" data-arg="' + rg.id + '"' +
+        (rg.full ? ' title="' + rg.full + '"' : '') + '>' + rg.name + '</button>';
+    }
+    h += '</div></div>';
+    var cities = CS.CITIES[g.region];
+    if (cities) {
+      h += '<div class="field"><span class="lab">우리 시·군 <span class="muted">(안 골라도 돼요)</span></span>' +
+        '<p class="muted" style="margin-bottom:8px">고르면 우리 시·군 학교가 목록 맨 위에 보여요.</p><div class="row">';
+      for (var c = 0; c < cities.length; c++) {
+        h += '<button class="tab small-tab' + (g.city === cities[c] ? ' on' : '') + '" data-act="city" data-arg="' + cities[c] + '">' + cities[c] + '</button>';
+      }
+      h += '</div></div>';
+    }
     if (err) { h += '<p class="err">' + err + '</p>'; }
     return h + '<div class="mt">' + primary('c1Next', '다음') + '</div>';
   };
@@ -165,18 +184,20 @@
 
   /* 학교 카드 */
   function schoolCard(sc, rec) {
-    var tags = '<span class="tag light">' + sc.type + ' · ' + sc.region + '</span> <span class="tag light">' + dormTag(sc) + '</span>';
+    var tags = '<span class="tag light">' + sc.type + ' · ' + sc.place + '</span>' + (sc.nation ? ' <span class="tag light">전국 모집</span>' : '') + dormTag(sc);
+    if (CS.inMyCity(g, sc)) { tags = '<span class="tag">📍 우리 ' + (g.city || '') + '</span> ' + tags; }
     if (rec) { tags = '<span class="tag">추천: ' + sc.reason + '</span> ' + tags; }
     var color = sc.depts ? CS.KINDS[sc.depts[0].kind].main : CS.KINDS[sc.kind].main;
     var emo = sc.emo || (sc.depts ? CS.KINDS[sc.depts[0].kind].emo : CS.KINDS[sc.kind].emo);
     return '<button class="ch bg-' + color + (g.school === sc.id ? ' on' : '') + '" data-act="pickSchool" data-arg="' + sc.id + '">' +
       '<span class="emo">' + emo + '</span><span class="body"><b>' + sc.name + '</b><small>' + sc.desc +
-      (sc.depts ? ' <u>학과 ' + sc.depts.length + '개</u>' : '') + '</small><span class="tags">' + tags + '</span></span></button>';
+      (sc.depts ? ' <u>' + (sc.deptWord || '학과') + ' ' + sc.depts.length + '개</u>' : '') + '</small><span class="tags">' + tags + '</span></span></button>';
   }
 
   VIEWS.school = function () {
     var h = scene({ place: '고등학교 고르기', emo: '🏫', color: 'study',
-      text: g.tab === 'rec' ? '내 답을 보니 이런 학교가 어울릴 것 같아요. 추천일 뿐, 위의 탭을 눌러 어느 학교든 고를 수 있어요.' : '탭을 넘기며 학교를 둘러보세요. 학교를 누르면 학과와 자세한 정보가 나와요.' });
+      text: (g.tab === 'rec' ? '내 답을 보니 이런 학교가 어울릴 것 같아요. 추천일 뿐, 위의 탭을 눌러 어느 학교든 고를 수 있어요.' : '탭을 넘기며 학교를 둘러보세요. 학교를 누르면 학과와 자세한 정보가 나와요.') +
+        '<br><span class="muted">' + (CS.regionOf(g.region) ? (CS.regionOf(g.region).full || CS.regionOf(g.region).name) : '') + ' 학교와 전국에서 모집하는 학교가 나와요.' + (g.city ? ' 우리 ' + g.city + ' 학교가 먼저 보여요.' : '') + '</span>' });
     /* 탭 */
     h += '<div class="tabs" role="tablist">';
     h += '<button class="tab' + (g.tab === 'rec' ? ' on' : '') + '" data-act="tab" data-arg="rec">⭐ 추천</button>';
@@ -186,17 +207,28 @@
     }
     h += '</div><div class="choices one">';
     var list = [], i;
-    if (g.tab === 'rec') { for (i = 0; i < g.recs.length; i++) { list.push(CS.findById(CS.SCHOOLS, g.recs[i])); } }
-    else { for (i = 0; i < CS.SCHOOLS.length; i++) { if (CS.SCHOOLS[i].tab === g.tab) { list.push(CS.SCHOOLS[i]); } } }
+    var vis = CS.visibleSchools(g);
+    if (g.tab === 'rec') { for (i = 0; i < g.recs.length; i++) { var rs = CS.findById(CS.SCHOOLS, g.recs[i]); if (rs) { list.push(rs); } } }
+    else {
+      /* 공통 유형 → 우리 지역 학교 → 전국 모집 학교 순서 */
+      var order = [function (x) { return x.common; },
+                   function (x) { return x.area !== 'all' && CS.inMyCity(g, x); },
+                   function (x) { return x.area !== 'all' && !CS.inMyCity(g, x); },
+                   function (x) { return x.nation; }];
+      for (var o = 0; o < order.length; o++) {
+        for (i = 0; i < vis.length; i++) { if (vis[i].tab === g.tab && order[o](vis[i])) { list.push(vis[i]); } }
+      }
+    }
     for (i = 0; i < list.length; i++) { h += schoolCard(list[i], g.recs.indexOf(list[i].id) >= 0); }
-    h += '</div>';
+    h += '</div><p class="muted small mt-s">학교 정보는 2026년 기준이에요. 기숙사, 모집 학과, 지원 자격은 학교 홈페이지에서 꼭 확인하세요.</p>';
 
     /* 고른 학교: 학과 고르기, 종목 적기 */
     var cur = CS.schoolOf(g);
     if (cur) {
       h += '<div class="picked"><h3>' + cur.name + '</h3>';
       if (cur.depts) {
-        h += '<p class="muted">학과를 골라요.</p><div class="choices three">';
+        var dw = cur.deptWord || '학과';
+        h += '<p class="muted">' + dw + CS.josa(dw, '을', '를') + ' 골라요.' + (cur.deptWord ? ' 학교마다 개설된 전공이 다를 수 있어요.' : '') + '</p><div class="choices three">';
         for (var d = 0; d < cur.depts.length; d++) {
           var dp = cur.depts[d], kd = CS.KINDS[dp.kind];
           h += ch('pickDept', dp.id, dp.name, kd.t[0], kd.main, { on: g.dept === dp.id, emo: kd.emo });
@@ -305,7 +337,7 @@
     }
     h += '</div>';
     if (g.exp < 3) { h += '<p class="muted mt-s">진로 탐색을 3번 이상 했다면 내 강점과 맞는 학과에 표시가 붙었을 거예요.</p>'; }
-    return h + '<div class="mt">' + plain('backGrad', '다른 길 보기') + '</div>';
+    return h;
   };
 
   VIEWS.work = function () {
@@ -321,7 +353,7 @@
       h += ch('work', w[0], w[1], CS.FIELDS[w[2]].name + ' 분야', CS.FIELDS[w[2]].keys[0],
         reqOpt(w[3], CS.FIELD_EMO[w[2]], mine.indexOf(w) >= 0 ? '내 학과와 맞음' : ''));
     }
-    return h + '</div><div class="mt">' + plain('backGrad', '다른 길 보기') + '</div>';
+    return h + '</div>';
   };
 
   VIEWS.abroad = function () {
@@ -332,7 +364,7 @@
       var ab = CS.ABROAD[i];
       h += ch('abroad', ab[0], ab[1], ab[2], CS.FIELDS[ab[3]].keys[0], reqOpt(ab[4], CS.FIELD_EMO[ab[3]], ''));
     }
-    return h + '</div><div class="mt">' + plain('backGrad', '다른 길 보기') + '</div>';
+    return h + '</div>';
   };
 
   /* 분야 고르기 (취업, 바로 활동, 창업, 분야 바꾸기 공용) */
@@ -353,7 +385,6 @@
       h += ch('field', ids[i], f.name, CS.STAT_NAMES[f.keys[0]] + ', ' + CS.STAT_NAMES[f.keys[1]], f.keys[0], { emo: CS.FIELD_EMO[ids[i]] });
     }
     h += '</div>';
-    if (g.pickMode !== 'change') { h += '<div class="mt">' + plain('backGrad', '다른 길 보기') + '</div>'; }
     return h;
   };
 
@@ -396,7 +427,7 @@
       h += ch('job', order[n], j.name, j.desc, CS.STYLE_COLORS[j.style],
         { emo: CS.STYLE_EMO[j.style], tag: match ? '내 방식과 맞음' : st.short + ' 쪽 일', tagCls: match ? '' : 'light' });
     }
-    return h + '</div><div class="mt">' + plain('backStyle', '일하는 방식 다시 고르기') + '</div>';
+    return h + '</div>';
   };
 
   VIEWS.ending = function () {
@@ -415,14 +446,19 @@
     h += '<h2 class="mt">돌아보기</h2>';
     h += '<label class="field"><span class="lab">게임 속 나와 지금의 나는 무엇이 닮았고, 무엇이 다른가요?</span><textarea id="inA">' + esc(g.reflect.a) + '</textarea></label>';
     h += '<label class="field"><span class="lab">이번 겨울에 실제로 해 볼 한 가지를 적어 보세요.</span><textarea id="inB">' + esc(g.reflect.b) + '</textarea></label>';
-    h += '<div class="row mt">' + primary('saveCard', '카드 이미지 저장') + plain('restart', '다시 해 보기') + '</div>';
+    h += '<div class="row mt">' + primary('saveCard', '카드 이미지 만들기') + plain('restart', '다시 해 보기') + '</div>';
     return h + '<div id="cardOut"></div>';
   };
 
   function render() {
     CS.save(g);
     renderSide();
-    stage.innerHTML = VIEWS[g.step]();
+    var back = '';
+    if (g.step !== 'intro' && CS.canBack(g)) {
+      var label = (g.step === 'semester') ? '← 방금 선택 되돌리기' : '← 이전으로';
+      back = '<div class="back-row"><button class="btn ghost" data-act="back">' + label + '</button></div>';
+    }
+    stage.innerHTML = back + VIEWS[g.step]();
     flash = '';
   }
   function go(step) { g.step = step; err = ''; render(); window.scrollTo(0, 0); }
@@ -435,12 +471,26 @@
     if (g.step !== 'intro' && !window.confirm('지금까지의 진행과 사진이 지워져요. 처음부터 다시 할까요?')) { return; }
     CS.clear(); g = CS.newGame(); go('intro');
   };
-  ON.start = function () { go('c1'); };
+  ON.back = function () {
+    if (!CS.canBack(g)) { return; }
+    g = CS.popHist(g);
+    flash = ''; err = ''; render(); window.scrollTo(0, 0);
+  };
+  ON.start = function () { CS.pushHist(g); go('c1'); };
   ON.avatar = function (a) { g.avatar = a; g.photo = ''; render(); };
   ON.photoOff = function () { g.photo = ''; render(); };
   ON.c1Next = function () {
     if (!g.name.trim()) { err = '이름을 적어 주세요.'; render(); return; }
-    g.name = g.name.trim(); go('c2');
+    if (!g.region) { err = '사는 곳을 골라 주세요.'; render(); return; }
+    g.name = g.name.trim(); CS.pushHist(g); go('c2');
+  };
+  ON.region = function (id) {
+    if (g.region !== id) { g.region = id; g.city = null; g.school = null; g.dept = null; g.recs = []; }
+    err = ''; render();
+  };
+  ON.city = function (c) {
+    g.city = (g.city === c) ? null : c;   /* 한 번 더 누르면 선택 취소 */
+    render();
   };
   ON.value = function (id) {
     var i = g.values.indexOf(id);
@@ -451,22 +501,24 @@
   };
   ON.c2Next = function () {
     if (g.values.length < 2) { err = '2개를 골라 주세요.'; render(); return; }
-    go('c3');
+    CS.pushHist(g); go('c3');
   };
   ON.allocPlus = function (id) { if (allocLeft() > 0) { g.alloc[id] += 1; err = ''; render(); } };
   ON.allocMinus = function (id) { if (g.alloc[id] > 0) { g.alloc[id] -= 1; render(); } };
   ON.c3Next = function () {
     if (allocLeft() > 0) { err = '점수가 ' + allocLeft() + '점 남았어요. 모두 나눠 주세요.'; render(); return; }
+    CS.pushHist(g);
     for (var k in g.alloc) { if (g.alloc.hasOwnProperty(k)) { g.stats[k] += g.alloc[k]; g.alloc[k] = 0; } }
     g.quizIdx = 0; g.quizScore = {};
     go('quiz');
   };
   ON.quiz = function (idx) {
+    CS.pushHist(g);
     CS.answerQuiz(g, parseInt(idx, 10));
     if (g.quizIdx >= CS.QUIZ.length) { g.recs = CS.recommendSchools(g); g.tab = 'rec'; go('school'); }
     else { render(); }
   };
-  ON.quizSkip = function () { g.recs = []; g.tab = 'general'; go('school'); };
+  ON.quizSkip = function () { CS.pushHist(g); g.recs = []; g.tab = 'general'; go('school'); };
   ON.tab = function (id) { g.tab = id; render(); };
   ON.pickSchool = function (id) {
     if (g.school !== id) { g.school = id; g.specialty = ''; g.dept = null; }
@@ -482,6 +534,7 @@
     if (!s) { err = '학교를 하나 골라 주세요.'; render(); return; }
     if (s.depts && !g.dept) { err = '학과를 하나 골라 주세요.'; render(); return; }
     g.specialty = g.specialty.trim();
+    CS.pushHist(g);
     var tr = CS.trackOf(g);
     var bonus = CS.bonusOf(tr.kind);
     CS.applyEff(g, bonus);
@@ -491,6 +544,7 @@
     go('semester');
   };
   ON.action = function (id) {
+    CS.clearHist(g); CS.pushHist(g);   /* 학기 선택은 방금 것 1번만 되돌리기 */
     var r = CS.doAction(g, id);
     if (r) {
       flash = (r.crit ? '<span class="crit">대성공!</span>' : '') + '<b>' + r.text + '</b> ' + fx(CS.resolveEff(g, r.eff));
@@ -498,9 +552,10 @@
     }
     render();
   };
-  ON.event = function (idx) { CS.chooseEvent(g, parseInt(idx, 10)); render(); };
-  ON.nextSem = function () { CS.nextSemester(g); render(); window.scrollTo(0, 0); };
+  ON.event = function (idx) { CS.clearHist(g); CS.chooseEvent(g, parseInt(idx, 10)); render(); };
+  ON.nextSem = function () { CS.clearHist(g); CS.nextSemester(g); render(); window.scrollTo(0, 0); };
   ON.path = function (type) {
+    CS.pushHist(g);
     if (type === 'univ') { go('college'); return; }
     if (type === 'work') { go('work'); return; }
     if (type === 'abroad') { go('abroad'); return; }
@@ -516,6 +571,7 @@
   ON.major = function (id) {
     var m = CS.majorOf(id);
     if (!m || !CS.checkReq(g, m.req).ok) { return; }
+    CS.pushHist(g);
     g.path = { type: 'univ', major: id, field: m.field };
     g.log.push(CS.pathText(g));
     go('tw1');
@@ -523,6 +579,7 @@
   ON.work = function (id) {
     var w = CS.rowOf(CS.WORK, id);
     if (!w || !CS.checkReq(g, w[3]).ok) { return; }
+    CS.pushHist(g);
     g.path = { type: 'work', work: id, field: w[2] };
     g.log.push(CS.pathText(g));
     go('tw1');
@@ -530,11 +587,13 @@
   ON.abroad = function (id) {
     var ab = CS.rowOf(CS.ABROAD, id);
     if (!ab || !CS.checkReq(g, ab[4]).ok) { return; }
+    CS.pushHist(g);
     g.path = { type: 'abroad', abroad: id, field: ab[3] };
     g.log.push(CS.pathText(g));
     go('tw1');
   };
   ON.field = function (id) {
+    CS.pushHist(g);
     if (g.pickMode === 'change') {
       g.path.field = id; g.path.changed = true;   /* 처음 고른 학과·일자리는 그대로 기록 */
       CS.applyEff(g, { exp: 1 });
@@ -546,24 +605,68 @@
     go('tw1');
   };
   ON.tw1 = function (id) {
+    CS.pushHist(g);
     if (id === 'change') { g.pickMode = 'change'; go('pickField'); return; }
     CS.applyTw1(g, id); go('tw2');
   };
-  ON.style = function (id) { g.style = id; g.job = null; go('job'); };
+  ON.style = function (id) { CS.pushHist(g); g.style = id; g.job = null; go('job'); };
   ON.backStyle = function () { go('tw2'); };
   ON.job = function (idx) {
+    CS.pushHist(g);
     g.job = parseInt(idx, 10);
     g.log.push('직업: ' + CS.jobOf(g.path.field, g.job).name);
     go('ending');
   };
+  /* 카드 저장
+     1단계: 카드 그림을 만들어 화면에 보여 줌
+     2단계: 공유 기능이 되는 기기(아이폰·안드로이드)는 「사진에 저장」 버튼 → 공유 창에서 「이미지 저장」
+            공유가 안 되는 기기(PC 등)는 바로 내려받기
+     아이폰 사파리는 내려받기를 하면 사진 앱이 아니라 「파일」 앱으로 가기 때문에 공유 창을 씁니다.
+     공유 기능은 https 주소(GitHub Pages, Netlify 등)에서만 동작합니다. */
+  var cardFile = null;
+  function canShareFile(f) {
+    try { return !!(f && navigator.canShare && navigator.share && navigator.canShare({ files: [f] })); } catch (e) { return false; }
+  }
+  function downloadUrl(url) {
+    var a = document.createElement('a');
+    a.href = url; a.download = 'my-future-card.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
   ON.saveCard = function () {
+    var out = document.getElementById('cardOut');
+    if (out) { out.innerHTML = '<p class="muted mt">카드를 만드는 중이에요…</p>'; }
     CS.drawCard(g, CS.computeEnding(g), function (canvas) {
-      var url = canvas.toDataURL('image/png');
-      var a = document.createElement('a');
-      a.href = url; a.download = 'my-future-card.png';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      document.getElementById('cardOut').innerHTML =
-        '<p class="muted mt">저장이 안 되면 아래 그림을 길게 눌러 「사진에 저장」을 고르세요.</p><img id="cardImg" alt="내 엔딩 카드" src="' + url + '">';
+      var dataUrl = canvas.toDataURL('image/png');
+      function show(file) {
+        cardFile = file;
+        var share = canShareFile(file);
+        var h = '<div class="card-actions">';
+        if (share) { h += primary('shareCard', '📲 사진에 저장하기'); }
+        h += '<a class="btn" href="' + dataUrl + '" download="my-future-card.png">파일로 내려받기</a></div>';
+        h += '<p class="muted mt-s">' + (share ? '공유 창이 뜨면 「이미지 저장」을 누르세요. ' : '') +
+          '저장이 안 되면 아래 그림을 길게 눌러 「사진에 저장」을 고르세요.</p>';
+        h += '<img id="cardImg" alt="내 엔딩 카드" src="' + dataUrl + '">';
+        if (out) { out.innerHTML = h; }
+        /* 검정 버튼은 하나만: 만든 뒤에는 「카드 다시 만들기」를 흰 버튼으로 */
+        var mk = document.querySelector('[data-act=saveCard]');
+        if (mk) { mk.className = 'btn'; mk.textContent = '카드 다시 만들기'; }
+        if (!share) { downloadUrl(dataUrl); }
+      }
+      if (canvas.toBlob && window.File) {
+        canvas.toBlob(function (blob) {
+          var f = null;
+          try { f = blob ? new File([blob], 'my-future-card.png', { type: 'image/png' }) : null; } catch (e) { f = null; }
+          show(f);
+        }, 'image/png');
+      } else { show(null); }
+    });
+  };
+  ON.shareCard = function () {
+    if (!canShareFile(cardFile)) { return; }
+    navigator.share({ files: [cardFile], title: '15년 뒤의 나' }).catch(function (e) {
+      if (e && e.name === 'AbortError') { return; }   /* 학생이 공유 창을 닫은 경우 */
+      var out = document.getElementById('cardOut');
+      if (out) { out.insertAdjacentHTML('afterbegin', '<p class="err">공유 창을 열지 못했어요. 아래 그림을 길게 눌러 저장하세요.</p>'); }
     });
   };
 

@@ -204,3 +204,11 @@ input:focus, textarea:focus { outline: 3px solid var(--exp); }
 .recs b { display: block; margin-bottom: 6px; }
 .recs .tag { margin: 0 4px 4px 0; }
 .recs small { display: block; margin-top: 4px; }
+
+/* ===== v5 추가 ===== */
+.small { font-size: 13px; }
+.foot a, .title-screen a { color: inherit; }
+.small-tab { min-height: 34px; padding: 3px 11px; font-size: 14px; }
+.back-row { margin-bottom: 10px; }
+.card-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+a.btn { display: inline-flex; align-items: center; text-decoration: none; color: #000; }

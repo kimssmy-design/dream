@@ -47,18 +47,43 @@ CS.answerQuiz = function (g, optIdx) {
   g.quizIdx += 1;
 };
 
-/* 학교 점수 = 가장 잘 맞는 성향 점수 + 두 번째 성향 점수의 절반 */
-CS.schoolScore = function (g, school) {
+/* 성향 목록 점수 = 가장 잘 맞는 성향 점수 + 두 번째 성향 점수의 절반
+   성향이 하나뿐인 학교(체고 등)는 그 성향에 집중된 학교라서 1.5배로 계산 */
+function tagScore(g, tags) {
   var vals = [];
-  for (var i = 0; i < school.tags.length; i++) { vals.push(g.quizScore[school.tags[i]] || 0); }
+  for (var i = 0; i < tags.length; i++) { vals.push(g.quizScore[tags[i]] || 0); }
   vals.sort(function (a, b) { return b - a; });
-  return vals[0] + (vals.length > 1 ? vals[1] / 2 : 0);
+  if (vals.length === 1) { return vals[0] * 1.5; }
+  return (vals[0] || 0) + (vals.length > 1 ? vals[1] / 2 : 0);
+}
+
+/* 학교 점수
+   - 학과가 여러 개인 학교는 학과마다 따로 계산해서 가장 잘 맞는 학과 점수를 씀
+     (학과 성향을 모두 합치면 학과가 많은 학교만 늘 추천되기 때문)
+   - 우리 지역 학교는 같은 점수일 때 먼저 나오도록 조금 더함 */
+CS.schoolScore = function (g, school) {
+  var best = 0;
+  if (school.depts) {
+    for (var d = 0; d < school.depts.length; d++) {
+      var t = (CS.KIND_TAGS[school.depts[d].kind] || []).slice();
+      if (school.dorm === 'all') { t.push('boarding'); }
+      best = Math.max(best, tagScore(g, t));
+    }
+  } else {
+    best = tagScore(g, school.tags);
+  }
+  if (school.area !== 'all') { best += 0.3; }            /* 우리 지역 학교 */
+  if (CS.inMyCity(g, school)) { best += 0.2; }           /* 우리 시·군 학교 */
+  if (school.common && school.depts) { best -= 1; }      /* '특성화고 (우리 지역)'은 학과가 많아 늘 맞으므로 낮춤 */
+  return best;
 };
 
 /* 점수 높은 학교 3곳 (동점이면 목록 순서대로) */
 CS.recommendSchools = function (g) {
   var list = [];
-  for (var i = 0; i < CS.SCHOOLS.length; i++) { list.push({ id: CS.SCHOOLS[i].id, s: CS.schoolScore(g, CS.SCHOOLS[i]), i: i }); }
-  list.sort(function (a, b) { return (b.s - a.s) || (a.i - b.i); });
+  var vis = CS.visibleSchools(g);   /* 내 지역 학교 + 전국 모집 학교 중에서만 추천 */
+  /* 점수가 같은 학교가 여럿이면(예: 같은 지역 외고 여러 곳) 그중에서 무작위로 */
+  for (var i = 0; i < vis.length; i++) { list.push({ id: vis[i].id, s: CS.schoolScore(g, vis[i]) + Math.random() * 0.01 }); }
+  list.sort(function (a, b) { return b.s - a.s; });
   return [list[0].id, list[1].id, list[2].id];
 };
