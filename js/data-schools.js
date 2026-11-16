@@ -1,6 +1,5 @@
 /* ===== 기본 데이터: 가치관, 능력치, 고등학교·학과, 학교 전용 활동 =====
-   학교 정보 출처: 강원 직업계고 진학 안내(gvhs.kr) 2027학년도 모집 학과, 각 학교 관련 보도.
-   기숙사 여부 중 'check'는 확인하지 못한 학교입니다. 확인되면 dorm 값을 바꿔 주세요. */
+   학교 목록은 data-regions.js 를 보세요. */
 var CS = window.CS || {};
 window.CS = CS;
 
@@ -109,7 +108,36 @@ CS.KINDS = {
   sergeant:     { emo: '🪖', main: 'body',   eff: { body: 1, social: 1, stress: 1 }, g: 'voc',
                   t: ['아침 체력 단련하기', '부사관 진로 특강 듣기', '부사관 선발 시험 준비하기'] },
   alt:          { emo: '🌱', main: 'social', eff: { social: 1, exp: 1 }, g: 'alt',
-                  t: ['마을 어르신 찾아가 이야기 듣기', '팀 프로젝트로 마을 문제 해결하기', '졸업 프로젝트 발표 준비하기'] }
+                  t: ['마을 어르신 찾아가 이야기 듣기', '팀 프로젝트로 마을 문제 해결하기', '졸업 프로젝트 발표 준비하기'] },
+  /* ---- 전국 버전에서 추가한 종류 ---- */
+  jasago:       { emo: '🏛️', main: 'study',  eff: { study: 1, social: 1, stress: 1 }, g: 'academic',
+                  t: ['심화 수업 과제 끝까지 해결하기', '교내 연구 프로젝트 참여하기', '대입 대비 심화 과정 듣기'] },
+  gugak:        { emo: '🪘', main: 'create', eff: { create: 1, social: 1, stress: 1 }, g: 'arts',
+                  t: ['가야금·판소리 기초 실기 익히기', '국악 관현악 정기 연주회 무대 서기', '입시 실기곡 완성하기'] },
+  perfArts:     { emo: '🎤', main: 'create', eff: { create: 1, social: 1, stress: 1 }, g: 'arts',
+                  t: ['보컬·연기 기초 레슨 듣기', '교내 쇼케이스 무대 준비하기', '오디션·입시 영상 찍기'] },
+  mech:         { emo: '⚙️', main: 'create', eff: { create: 1, body: 1, stress: 1 }, g: 'voc',
+                  t: ['선반·밀링 기계 다루기 실습하기', '자동화 설비 조립 실습하기', '기계 회사 현장 실습 가기'] },
+  electronics:  { emo: '📡', main: 'study',  eff: { study: 1, create: 1, stress: 1 }, g: 'voc',
+                  t: ['전자 회로 납땜 실습하기', '통신 장비 다루기 실습하기', '전자 회사 현장 실습 가기'] },
+  game:         { emo: '🎮', main: 'create', eff: { create: 1, study: 1, stress: 1 }, g: 'voc',
+                  t: ['게임 엔진 기초 익히기', '팀으로 미니 게임 만들기', '게임 공모전 출품작 완성하기'] },
+  marine:       { emo: '🚢', main: 'body',   eff: { body: 1, study: 1, stress: 1 }, g: 'voc',
+                  t: ['실습선에서 항해 기초 배우기', '바다 위 승선 실습 나가기', '해기사 면허 시험 준비하기'] },
+  ship:         { emo: '🛳️', main: 'create', eff: { create: 1, body: 1, stress: 1 }, g: 'voc',
+                  t: ['용접 기초 실습하기', '선박 설계 도면 읽기', '조선소 현장 실습 가기'] },
+  food:         { emo: '🥫', main: 'study',  eff: { study: 1, create: 1, stress: 1 }, g: 'voc',
+                  t: ['식품 위생 기초 실습하기', '새로운 가공식품 개발하기', '식품 회사 현장 실습 가기'] },
+  chem:         { emo: '⚗️', main: 'study',  eff: { study: 2, stress: 1 }, g: 'voc',
+                  t: ['화학 분석 기초 실험하기', '공정 운전 시뮬레이션 실습하기', '석유화학 공장 현장 실습 가기'] },
+  logistics:    { emo: '📦', main: 'social', eff: { social: 1, study: 1, stress: 1 }, g: 'voc',
+                  t: ['물류 관리 프로그램 익히기', '항만 컨테이너 터미널 견학하기', '물류 회사 현장 실습 가기'] },
+  horse:        { emo: '🐎', main: 'body',   eff: { body: 1, social: 1, stress: 1 }, g: 'voc',
+                  t: ['말 돌보기와 승마 기초 배우기', '말 조련 실습하기', '경마·승마 현장 실습 가기'] },
+  care:         { emo: '🩹', main: 'social', eff: { social: 1, study: 1, stress: 1 }, g: 'voc',
+                  t: ['기초 간호 실습하기', '요양원 봉사 실습 가기', '간호조무사 자격 시험 준비하기'] },
+  tour:         { emo: '🧳', main: 'social', eff: { social: 1, create: 1, stress: 1 }, g: 'voc',
+                  t: ['외국어 안내 멘트 연습하기', '호텔 프런트 실습하기', '관광 상품 기획 대회 나가기'] }
 };
 
 /* 학교 고르기 탭 */
@@ -120,112 +148,7 @@ CS.SCHOOL_TABS = [
   { id: 'alt',     name: '대안학교' }
 ];
 
-/* 기숙사 표시: all 전원 기숙사 / some 기숙사 있음 / varies 학교마다 다름 / check 확인 필요 */
-CS.DORM_TEXT = { all: '전원 기숙사', some: '기숙사 있음', varies: '학교마다 다름', check: '기숙사 여부 확인 필요' };
-
-/* 고등학교 목록
-   tags: 나 알아보기 질문 추천에 쓰는 성향 / kind: 학과가 없을 때의 활동 종류
-   depts: 학과 목록 (학과마다 kind) / ask: 종목·전공을 적게 할 때의 안내 */
-CS.SCHOOLS = [
-  /* 일반고·자율학교 */
-  { id: 'general', tab: 'general', name: '일반고', type: '일반고', region: '우리 지역', dorm: 'varies', kind: 'general',
-    desc: '여러 과목을 직접 골라 들으며(고교학점제) 진로를 찾아가요.', tags: ['general'],
-    reason: '여러 가지를 해 보며 천천히 찾고 싶은 나에게' },
-  { id: 'sportsTalent', tab: 'general', name: '일반고 체육특기생', type: '일반고', region: '우리 지역', dorm: 'varies', kind: 'sportsTalent',
-    desc: '일반고에 다니며 운동부 선수로 뛰어요. 수업과 훈련을 함께 해내야 해요.', tags: ['sport', 'general'], ask: '내 종목 (예: 조정)',
-    reason: '운동도 평범한 학교생활도 놓치고 싶지 않은 나에게' },
-  { id: 'hanil', tab: 'general', name: '공주 한일고', type: '전국 단위 자율학교', region: '충남 공주', dorm: 'all', kind: 'boarding',
-    desc: '전국에서 학생을 뽑고, 3년 동안 기숙사에서 함께 생활하며 공부해요.', tags: ['study', 'boarding'],
-    reason: '친구들과 함께 지내며 공부에 집중하고 싶은 나에게' },
-  { id: 'hanmin', tab: 'general', name: '파주 한민고', type: '기숙형 자율학교', region: '경기 파주', dorm: 'all', kind: 'boarding',
-    desc: '군인 자녀를 중심으로 뽑는 기숙형 학교예요. 규칙적인 단체 생활을 해요.', tags: ['boarding', 'military', 'study'],
-    reason: '규칙적인 기숙사 생활이 잘 맞는 나에게' },
-  { id: 'minjok', tab: 'general', name: '횡성 민족사관고', type: '전국 단위 자사고', region: '강원 횡성', dorm: 'all', kind: 'boarding',
-    desc: '전국 단위로 뽑는 자율형 사립고예요. 기숙사 생활을 하며 공부량이 많아요.', tags: ['study', 'boarding', 'lang'],
-    reason: '높은 목표를 세우고 깊이 공부하고 싶은 나에게' },
-  /* 특목고·예체능 */
-  { id: 'kwSci', tab: 'special', name: '강원과학고', type: '과학고', region: '강원 원주', dorm: 'some', kind: 'science',
-    desc: '수학과 과학을 깊이 배우고 탐구 활동이 많아요.', tags: ['science', 'study'],
-    reason: '원리를 끝까지 파고드는 나에게' },
-  { id: 'langHigh', tab: 'special', name: '외국어고 (예: 강원외고)', type: '외국어고', region: '강원', dorm: 'check', kind: 'lang',
-    desc: '전공 외국어를 깊이 배우고 다른 나라 문화를 가까이 접해요.', tags: ['lang', 'study'], ask: '내 전공어 (예: 영어, 중국어)',
-    reason: '다른 나라 말과 사람에 관심 많은 나에게' },
-  { id: 'peHigh', tab: 'special', name: '체육고 (예: 강원체고)', type: '체육고', region: '강원', dorm: 'check', kind: 'pe',
-    desc: '하루의 많은 시간을 전문 훈련에 써요. 전국 대회가 목표예요.', tags: ['sport'], ask: '내 종목 (예: 레슬링)',
-    reason: '몸을 쓰는 게 좋고 승부를 즐기는 나에게' },
-  { id: 'artHigh', tab: 'special', name: '예술고 미술과 (예: 강원예고)', type: '예술고', region: '강원', dorm: 'check', kind: 'art',
-    desc: '소묘, 채색, 디자인 실기를 깊이 배워요.', tags: ['art'], ask: '내 전공 (예: 서양화, 디자인)',
-    reason: '그리고 만드는 데 몰입하는 나에게' },
-  { id: 'danceHigh', tab: 'special', name: '예술고 무용과 (예: 강원예고)', type: '예술고', region: '강원', dorm: 'check', kind: 'dance',
-    desc: '몸으로 표현하는 법을 배워요. 연습실에서 보내는 시간이 길어요.', tags: ['perform', 'sport'], ask: '내 장르 (예: 현대무용, 한국무용)',
-    reason: '몸으로 표현하고 무대를 좋아하는 나에게' },
-  { id: 'musicHigh', tab: 'special', name: '예술고 음악·연극과 (예: 강원예고)', type: '예술고', region: '강원', dorm: 'check', kind: 'music',
-    desc: '악기, 성악, 연기를 전공해요. 무대에 서는 경험이 많아요.', tags: ['perform'], ask: '내 전공 (예: 피아노, 연기)',
-    reason: '노래하고 연주하고 연기하는 게 좋은 나에게' },
-  /* 특성화고·마이스터고 */
-  { id: 'hansaem', tab: 'voc', emo: '🛍️', name: '춘천한샘고', type: '특성화고', region: '강원 춘천', dorm: 'check',
-    desc: '학과가 다양해서 「백화점 학교」라고도 불려요. 부전공도 고를 수 있어요.', tags: ['beauty', 'food', 'media', 'it'],
-    reason: '좋아하는 분야를 실습으로 배우고 싶은 나에게',
-    depts: [ { id: 'sns', name: 'SNS마케팅과', kind: 'ebiz' }, { id: 'design', name: '디자인콘텐츠과', kind: 'dcontent' },
-             { id: 'beautyArt', name: '뷰티아트과', kind: 'beauty' }, { id: 'fashionStyle', name: '패션스타일과', kind: 'fashion' },
-             { id: 'cookDept', name: '조리과', kind: 'cook' }, { id: 'bioCos', name: '바이오코스메틱과', kind: 'biocos' },
-             { id: 'fusionSw', name: '융합소프트웨어과', kind: 'software' } ] },
-  { id: 'ccMech', tab: 'voc', emo: '⚙️', name: '춘천기계공고', type: '특성화고', region: '강원 춘천', dorm: 'check',
-    desc: '기계, 로봇, 반도체, 자동차, 전기, 건축을 실습 중심으로 배워요.', tags: ['tech'],
-    reason: '직접 만들고 고치는 게 좋은 나에게',
-    depts: [ { id: 'robotSys', name: '로봇기계시스템과', kind: 'robot' }, { id: 'robotMat', name: '로봇소재융합과', kind: 'robot' },
-             { id: 'semi', name: '반도체과', kind: 'semicon' }, { id: 'car', name: '자동차과', kind: 'auto' },
-             { id: 'elec', name: '전기과', kind: 'electric' }, { id: 'build', name: '건축토목과', kind: 'construct' } ] },
-  { id: 'kwBio', tab: 'voc', emo: '🌿', name: '강원생명과학고', type: '특성화고 (협약형)', region: '강원 춘천', dorm: 'check',
-    desc: '농업, 동물, 꽃, 디저트를 배우고 지역 기업과 연계해 취업해요.', tags: ['farm', 'food'],
-    reason: '동물과 식물, 자연이 좋은 나에게',
-    depts: [ { id: 'smartFarm', name: '스마트팜도시농업과', kind: 'farm' }, { id: 'petCare', name: '반려동물케어과', kind: 'pet' },
-             { id: 'flowerGarden', name: '플라워가드닝과', kind: 'flower' }, { id: 'cafeDessert', name: '카페N디저트과', kind: 'cafe' } ] },
-  { id: 'kAI', tab: 'voc', emo: '🤖', name: '한국인공지능고', type: '특성화고', region: '강원 화천', dorm: 'check',
-    desc: '인공지능과 사물인터넷을 함께 배워 스마트홈, 자율주행 기술을 직접 만들어요.', tags: ['it', 'tech'],
-    reason: '코딩과 기계, 새로운 기술이 궁금한 나에게',
-    depts: [ { id: 'aiIot', name: 'AI사물인터넷과', kind: 'ai' } ] },
-  { id: 'kwAni', tab: 'voc', emo: '🎬', name: '강원애니고', type: '특성화고', region: '강원 춘천', dorm: 'check',
-    desc: '만화, 애니메이션, 방송 영상을 만들며 배워요.', tags: ['ani', 'art', 'media'],
-    reason: '이야기와 그림, 영상으로 뭔가 만들고 싶은 나에게',
-    depts: [ { id: 'comicDept', name: '만화창작과', kind: 'comic' }, { id: 'aniDept', name: '애니메이션과', kind: 'ani' },
-             { id: 'bcast', name: '방송영상과', kind: 'broadcast' } ] },
-  { id: 'kMedi', tab: 'voc', emo: '🩺', name: '한국의료마이스터고 (구 원주의료고)', type: '마이스터고', region: '강원 원주', dorm: 'check',
-    desc: '의료기기와 바이오의약을 배워요. 졸업 후 의료기기·제약 회사로 많이 취업해요.', tags: ['health', 'tech', 'science'],
-    reason: '사람을 돕는 기술에 관심 있는 나에게',
-    depts: [ { id: 'medMech', name: '의료기계과', kind: 'medmech' }, { id: 'bioPharm', name: '바이오의약과', kind: 'biopharma' },
-             { id: 'medElec', name: '의료전기전자과', kind: 'medelec' } ] },
-  { id: 'kDef', tab: 'voc', emo: '🎖️', name: '한국국방과학고', type: '강원형 마이스터고', region: '강원 철원', dorm: 'all',
-    desc: '2학년부터 사이버보안, 로봇, 드론, 진학 코스로 나뉘어요. 학년당 48명만 뽑아요.', tags: ['military', 'it'],
-    reason: '나라를 지키는 기술에 관심 있는 나에게',
-    depts: [ { id: 'defSys', name: '국방시스템과', kind: 'defense' } ] },
-  { id: 'kAir', tab: 'voc', emo: '✈️', name: '한국항공고', type: '강원형 마이스터고', region: '강원 태백', dorm: 'check',
-    desc: '항공기 정비를 배워 항공 분야 기술자로 일할 준비를 해요.', tags: ['military', 'tech'],
-    reason: '비행기와 하늘에 끌리는 나에게',
-    depts: [ { id: 'airMaint', name: '항공정비시스템과', kind: 'aviation' } ] },
-  { id: 'kFire', tab: 'voc', emo: '🚒', name: '한국소방마이스터고', type: '마이스터고', region: '강원 영월', dorm: 'all',
-    desc: '우리나라 유일의 소방 분야 마이스터고예요. 소방 설비를 설계하고 점검하는 법을 배워요.', tags: ['military', 'health'],
-    reason: '위험한 순간에 사람을 지키고 싶은 나에게',
-    depts: [ { id: 'fireSafe', name: '소방안전관리과', kind: 'fire' } ] },
-  { id: 'dimigo', tab: 'voc', emo: '💻', name: '한국디지털미디어고', type: '특성화고 (전국 단위)', region: '경기 안산', dorm: 'all',
-    desc: '우리나라 첫 IT 특성화고예요. 전국에서 학생을 뽑고 전교생이 기숙사에서 생활해요.', tags: ['it', 'media', 'boarding'],
-    reason: '컴퓨터와 미디어로 세상을 바꾸고 싶은 나에게',
-    depts: [ { id: 'ebizDept', name: 'e-비즈니스과', kind: 'ebiz' }, { id: 'dContent', name: '디지털콘텐츠과', kind: 'dcontent' },
-             { id: 'webProg', name: '웹프로그래밍과', kind: 'software' }, { id: 'hackDef', name: '해킹방어과', kind: 'hacking' } ] },
-  { id: 'cheongdam', tab: 'voc', name: '평택 청담고', type: '특성화고', region: '경기 평택', dorm: 'some', dormNote: '운동부·부사관 진로 학생 위주',
-    kind: 'sergeant', desc: '부사관 진로와 운동부 학생을 위한 기숙사가 있어요.', tags: ['military', 'sport'],
-    reason: '군인이나 운동선수의 길이 궁금한 나에게' },
-  { id: 'afAir', tab: 'voc', name: '공군항공과학고', type: '마이스터고 (전국 단위)', region: '경남 진주', dorm: 'all', kind: 'aviation',
-    desc: '입학과 동시에 공군 부사관 후보생이 되고, 3년 동안 생활관에서 지내요.', tags: ['military', 'tech', 'boarding'],
-    reason: '하늘을 지키는 기술자가 되고 싶은 나에게' },
-  /* 대안학교 */
-  { id: 'hyeoncheon', tab: 'alt', name: '현천고', type: '기숙형 공립 대안학교', region: '강원 횡성', dorm: 'all', kind: 'alt',
-    desc: '함께 먹고 자며 지역 어르신 돕기, 체험, 프로젝트로 배워요. 대학 입시보다 삶을 배우는 데 집중해요.', tags: ['alt', 'boarding'],
-    reason: '교실 밖에서 배우고 싶은 나에게' },
-  { id: 'jeonin', tab: 'alt', name: '전인고', type: '대안교육 특성화고', region: '강원 춘천', dorm: 'check', kind: 'alt',
-    desc: '프로젝트와 체험 중심으로 배우는 작은 학교예요.', tags: ['alt'],
-    reason: '나만의 속도로 배우고 싶은 나에게' }
-];
+/* 고등학교 목록과 지역은 data-regions.js 에 있습니다. */
 
 /* 학교와 학과로 활동 종류 찾기 */
 CS.kindIdOf = function (school, deptId) {
