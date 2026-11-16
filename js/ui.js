@@ -178,7 +178,7 @@
     for (var i = 0; i < q.options.length; i++) {
       h += ch('quiz', i, q.options[i].text, '', CS.QUIZ_COLORS[i], { emo: q.options[i].emo });
     }
-    h += '</div><div class="mt"><button class="btn ghost" data-act="quizSkip">아직 잘 모르겠어요 (건너뛰기)</button></div>';
+    h += '</div><div class="mt"><button class="btn" data-act="quizSkip">🤔 아직 잘 모르겠어요 · 질문 건너뛰고 학교 보기</button></div>';
     return h;
   };
 
@@ -219,13 +219,33 @@
         for (i = 0; i < vis.length; i++) { if (vis[i].tab === g.tab && order[o](vis[i])) { list.push(vis[i]); } }
       }
     }
-    for (i = 0; i < list.length; i++) { h += schoolCard(list[i], g.recs.indexOf(list[i].id) >= 0); }
-    h += '</div><p class="muted small mt-s">학교 정보는 2026년 기준이에요. 기숙사, 모집 학과, 지원 자격은 학교 홈페이지에서 꼭 확인하세요.</p>';
-
-    /* 고른 학교: 학과 고르기, 종목 적기 */
+    /* 고른 학교 상자: 학과 고르기, 종목 적기, 입학하기
+       목록이 길어도 바로 보이도록 고른 학교 카드 바로 아래에 붙임 */
     var cur = CS.schoolOf(g);
+    var picked = '';
     if (cur) {
-      h += '<div class="picked"><h3>' + cur.name + '</h3>';
+      picked = pickedBox(cur);
+    }
+    var shown = false;
+    for (i = 0; i < list.length; i++) {
+      h += schoolCard(list[i], g.recs.indexOf(list[i].id) >= 0);
+      if (cur && list[i].id === cur.id) { h += picked; shown = true; }
+    }
+    if (!list.length) { h += '<p class="muted">이 탭에는 학교가 없어요. 다른 탭을 눌러 보세요.</p>'; }
+    h += '</div>';
+    if (cur && !shown) { h += picked; }   /* 다른 탭에서 고른 학교는 목록 아래에 */
+    h += '<p class="muted small mt-s">학교 정보는 2026년 기준이에요. 기숙사, 모집 학과, 지원 자격은 학교 홈페이지에서 꼭 확인하세요.</p>';
+    if (!cur) {
+      if (err) { h += '<p class="err">' + err + '</p>'; }
+      h += '<div class="mt">' + primary('enroll', '입학하기') + '</div>';
+    }
+    return h;
+  };
+
+  function pickedBox(cur) {
+    var h = '';
+    {
+      h += '<div class="picked" id="pickedBox"><h3>✔ ' + cur.name + '</h3>';
       if (cur.depts) {
         var dw = cur.deptWord || '학과';
         h += '<p class="muted">' + dw + CS.josa(dw, '을', '를') + ' 골라요.' + (cur.deptWord ? ' 학교마다 개설된 전공이 다를 수 있어요.' : '') + '</p><div class="choices three">';
@@ -240,11 +260,12 @@
           '<input type="text" id="inSpec" maxlength="14" value="' + esc(g.specialty) + '"></label>';
       }
       var kindNow = CS.KINDS[CS.kindIdOf(cur, g.dept)];
-      h += '<p class="mt-s">입학 보너스 ' + fx(CS.bonusOf(kindNow)) + '</p></div>';
+      h += '<p class="mt-s">입학 보너스 ' + fx(CS.bonusOf(kindNow)) + '</p>';
+      if (err) { h += '<p class="err">' + err + '</p>'; }
+      h += '<div class="mt-s">' + primary('enroll', '이 학교에 입학하기') + '</div></div>';
     }
-    if (err) { h += '<p class="err">' + err + '</p>'; }
-    return h + '<div class="mt">' + primary('enroll', '입학하기') + '</div>';
-  };
+    return h;
+  }
 
   function track() {
     var h = '<div class="track">';
@@ -458,8 +479,21 @@
       var label = (g.step === 'semester') ? '← 방금 선택 되돌리기' : '← 이전으로';
       back = '<div class="back-row"><button class="btn ghost" data-act="back">' + label + '</button></div>';
     }
-    stage.innerHTML = back + VIEWS[g.step]();
+    try {
+      stage.innerHTML = back + VIEWS[g.step]();
+    } catch (e) {
+      showError(e);
+    }
     flash = '';
+  }
+  /* 오류 안내: 파일이 섞였거나(예전 파일 + 새 파일) 예상 못 한 문제가 생겼을 때 */
+  function showError(e) {
+    var msg = (e && e.message) ? e.message : String(e);
+    if (window.console) { console.error(e); }
+    stage.innerHTML = '<div class="note bg-stress"><b>화면을 불러오다 문제가 생겼어요.</b>' +
+      '<p class="mt-s">새로고침해도 같으면 「처음부터」를 눌러 주세요. 선생님께 아래 내용을 보여 주면 고칠 수 있어요.</p>' +
+      '<p class="muted small mt-s">오류: ' + esc(msg) + ' · 화면: ' + esc(g.step) + ' · 버전 ' + CS.VERSION + '</p></div>' +
+      '<div class="row mt"><button class="btn" data-act="back">← 이전으로</button><button class="btn" data-act="restart">처음부터</button></div>';
   }
   function go(step) { g.step = step; err = ''; render(); window.scrollTo(0, 0); }
 
@@ -525,8 +559,8 @@
     var sc = CS.schoolOf(g);
     if (sc.depts && sc.depts.length === 1) { g.dept = sc.depts[0].id; }
     err = ''; render();
-    var el = document.querySelector('.picked');
-    if (el && el.scrollIntoView) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    var el = document.getElementById('pickedBox');
+    if (el && el.scrollIntoView) { try { el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) { el.scrollIntoView(false); } }
   };
   ON.pickDept = function (id) { g.dept = id; err = ''; render(); };
   ON.enroll = function () {
@@ -702,7 +736,9 @@
       var t = ev.target.closest ? ev.target.closest('[data-act]') : null;
       if (!t || t.disabled) { return; }
       var fn = ON[t.getAttribute('data-act')];
-      if (fn) { fn(t.getAttribute('data-arg')); }
+      if (fn) {
+        try { fn(t.getAttribute('data-arg')); } catch (e) { showError(e); }
+      }
     });
     /* 글자 입력은 화면을 다시 그리지 않고 바로 저장 */
     document.addEventListener('input', function (ev) {

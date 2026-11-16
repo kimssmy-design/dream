@@ -3,6 +3,7 @@ var CS = window.CS || {};
 window.CS = CS;
 
 CS.SAVE_KEY = 'career-sim-v5';
+CS.VERSION = '5.3';   /* index.html 의 ?v= 값과 같게 맞춰 주세요 */
 
 /* 새 게임의 처음 상태 */
 CS.newGame = function () {
